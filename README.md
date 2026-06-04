@@ -1,5 +1,9 @@
 # DigDug
 
+<p align="center">
+  <img src="Resources/DigDug.png" alt="DigDug app icon" width="128" height="128">
+</p>
+
 A lightweight, always-on-top macOS chat panel that talks to a **local Ollama** model. Summon it over any app, ask a question, read a markdown/code answer, copy, dismiss. No cloud, no telemetry — inference stays on your machine.
 
 Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-markdown-ui`.
