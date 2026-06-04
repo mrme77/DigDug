@@ -58,3 +58,24 @@
 ### Swift 6 strict concurrency
 - `OllamaService` is marked `Sendable` so its `Task` closure can capture `self` inside
   the `AsyncThrowingStream`. Keep all stored properties immutable Sendable types.
+
+### macOS screenshot filenames contain a narrow no-break space (U+202F)
+- Default screenshot names like `Screenshot 2026-06-04 at 8.38.21 PM.png` use **U+202F**
+  (narrow no-break space) before `AM`/`PM`, not a normal space. So `mv "...8.38.21 PM.png"`
+  with a regular space **fails** ("No such file or directory"), and the name also breaks
+  Markdown image links. Fix: rename via glob (`mv Screenshot*8.38.21*.png chat.png`) to a
+  clean slug before referencing in README.
+
+### Idle vs used-state CPU
+- A **fresh** `DigDug.app` launch idles at ~0–2% CPU / ~91 MB (profiled with
+  `sample <pid> 3` — runloop parked in `runApp`). An instance with an **active/used
+  conversation** held a steady ~13% CPU / ~126 MB. Root cause not yet found; measure with
+  `sample` while a conversation is loaded, not on a clean launch, or the signal disappears.
+
+### Publishing: course-reader.txt is gitignored and must stay out of history
+- `course-reader.txt` (© Eleanor Berger course material) is gitignored and was removed
+  before the first push; it is **not** in any reachable commit. The repo is public, so do
+  not re-add it. Eleanor Berger is credited as inspiration in `README.md` Acknowledgments.
+- Reconciling after `--amend`: the first `gh repo create --push` sent an older snapshot,
+  so local/remote histories diverged (no shared ancestry after amends). Resolved with
+  `git push --force-with-lease origin main` (safe: solo brand-new repo).

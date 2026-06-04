@@ -20,6 +20,12 @@ All architectural and design decisions.
 **Reason**: Make tests actually run and report pass/fail. Revert to a plain `.testTarget` if full Xcode is installed.
 **Status**: Accepted — details in `learnings.md`.
 
+## [2026-06-04] Published as a public GitHub repo
+**Context**: Ready to share the project and its agentic operating surface.
+**Decision**: Publish to <https://github.com/mrme77/DigDug> (public). Remove the copyrighted `course-reader.txt` from the tree/history and gitignore it; credit Eleanor Berger's *Elite AI-Assisted Coding* course as inspiration in the README.
+**Reason**: Share the work without redistributing third-party copyrighted material.
+**Status**: Accepted — see `learnings.md` for the history-reconciliation details.
+
 ## [2026-06-04] MCP choice: `fetch`, not Playwright
 **Context**: The course homework defaults to Playwright MCP, but that drives a browser.
 **Decision**: DigDug is a native macOS app with no browser surface, so Playwright doesn't apply. Use the `fetch` MCP (`opencode.json`) for runtime HTTP/doc retrieval — including hitting the Ollama API (`/api/tags`) and Apple/Ollama docs.
