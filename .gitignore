@@ -1,0 +1,12 @@
+.env
+.env.*
+.build/
+build/
+DerivedData/
+*.xcuserdata/
+*.xcuserstate
+.DS_Store
+.claude/settings.local.json
+
+# copyrighted course material — not distributed
+course-reader.txt
