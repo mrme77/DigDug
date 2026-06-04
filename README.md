@@ -8,6 +8,18 @@ A lightweight, always-on-top macOS chat panel that talks to a **local Ollama** m
 
 Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-markdown-ui`.
 
+## Screenshots
+
+<p align="center">
+  <img src="Resources/screenshot-chat.png" alt="DigDug chat panel answering a question with the local Gemma model" width="460">
+</p>
+
+<p align="center">
+  <img src="Resources/screenshot-dock.png" alt="DigDug in the macOS Dock" width="200">
+  <br>
+  <em>Floating chat panel (left); lives in the Dock and menu bar (right).</em>
+</p>
+
 ## Requirements
 - macOS 13+
 - Swift toolchain (Command Line Tools is enough — full Xcode not required)
