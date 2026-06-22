@@ -10,13 +10,15 @@ import Testing
         try writeText("hello", to: file)
 
         let output = try await GetFileMetadataTool().execute(
-            arguments: arguments(["path": .string(file.path)])
+            arguments: arguments(["paths": .array([.string(file.path)])])
         )
-        let metadata = try JSONDecoder().decode(
-            FileMetadata.self,
+        let results = try JSONDecoder().decode(
+            [FileMetadataResult].self,
             from: #require(output.data(using: .utf8))
         )
 
+        #expect(results.count == 1)
+        let metadata = try #require(results.first?.metadata)
         #expect(metadata.path == file.path)
         #expect(metadata.name == "notes.txt")
         #expect(metadata.type == "file")
@@ -30,13 +32,15 @@ import Testing
         try writeText("hello", to: file)
 
         let output = try await HashFileTool().execute(
-            arguments: arguments(["path": .string(file.path)])
+            arguments: arguments(["paths": .array([.string(file.path)])])
         )
-        let result = try JSONDecoder().decode(
-            FileHashResult.self,
+        let results = try JSONDecoder().decode(
+            [FileHashItemResult].self,
             from: #require(output.data(using: .utf8))
         )
 
+        #expect(results.count == 1)
+        let result = try #require(results.first?.result)
         #expect(result.algorithm == "sha256")
         #expect(result.hash == "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
         #expect(result.size == 5)

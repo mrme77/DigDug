@@ -104,6 +104,19 @@ public struct ToolArguments: Equatable, Sendable {
         return value
     }
 
+    /// Returns a required array of strings or throws a descriptive validation error.
+    public func requiredStringArray(_ name: String) throws -> [String] {
+        guard case .array(let items) = values[name] else {
+            throw AgentToolError.invalidArgument("Missing or invalid array '\(name)'.")
+        }
+        return try items.map {
+            guard case .string(let value) = $0 else {
+                throw AgentToolError.invalidArgument("Invalid string entry in array '\(name)'.")
+            }
+            return value
+        }
+    }
+
     /// Returns an optional string argument.
     public func optionalString(_ name: String) throws -> String? {
         guard let value = values[name], value != .null else { return nil }
