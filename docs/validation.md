@@ -7,12 +7,10 @@ Procedures to verify that the application meets its specifications and constrain
 ### Automated checks
 - [x] **Swift parser**: every `.swift` file under `Sources/` and `Tests/` passed
   `swiftc -frontend -parse` after implementation.
-- [x] **Repository checks**: `git diff --check` passed before the documentation edits.
-- [ ] **Core build**: blocked before source type checking by a mismatched Command Line Tools
-  compiler and SDK (`swiftlang-6.3.2.1.108` vs `swiftlang-6.3.2.1.2`).
-- [ ] **Authoritative tests**: `swift run DigDugTestRunner` cannot start until the same CLT
-  mismatch is repaired. New tests cover all eight file tools, safety paths, schemas,
-  confirmations, and the 10-round loop guard.
+- [x] **Repository checks**: `git diff --check` passed.
+- [x] **Core build**: `swift build --disable-sandbox --target DigDugCore` passed with a writable temporary Clang module cache.
+- [x] **Full app build**: `swift build --disable-sandbox --product DigDug` passed, including the plan preview and report UI.
+- [x] **Authoritative tests**: 29 tests across 5 suites passed through `DigDugTestRunner`. Organizer coverage includes metadata, known SHA-256 output, nested schema, canonical typed confirmation, root escape, destination collision, complete execution, and injected second-move rollback.
 
 ### Ollama checks
 - [x] **Initial preflight**: `GET /api/version` returned Ollama `0.30.10` and `GET /api/tags`
@@ -27,13 +25,15 @@ Procedures to verify that the application meets its specifications and constrain
 - [ ] A file task streams tool status, pauses for confirmation, and resumes after approval.
 - [ ] Stop cancels an active agent turn and appends `Task cancelled by user.`
 - [ ] The floating panel still launches, hides, reopens, and renders markdown correctly.
+- [ ] A multi-file request shows one complete mapping plan, moves files after approval, and displays the execution report.
+- [ ] Cancelling the organization plan changes no files.
 
 ## Earlier Run: 2026-06-04 (smoke test)
 
 ### Backend round-trip (machine-verified)
 - [x] **Server reachable**: `curl http://localhost:11434/api/tags` → REACHABLE.
 - [x] **Model installed**: `gemma4:e4b` present in `ollama list`.
-- [x] **Streaming generate**: `POST /api/generate` (`gemma4:e4b`, `stream:true`) → 5 chunks, assembled `SMOKE_OK`. This is the exact path `OllamaService` uses.
+- [x] **Streaming generate**: legacy `POST /api/generate` (`gemma4:e4b`, `stream:true`) assembled `SMOKE_OK`; this was superseded by `/api/chat` on 2026-06-22.
 - [x] **App launches**: `open -a /Applications/DigDug.app` → process stays alive (PID confirmed).
 - [x] **In-UI checks**: not machine-verifiable from the CLI (Screen Recording + Accessibility not granted), but author-confirmed manually — floating-window, live streaming render, and minimize/close all pass. See Manual Checks.
 

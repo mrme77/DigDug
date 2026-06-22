@@ -199,5 +199,6 @@ public final class AgentRunner: Sendable {
     Always tell the user what you are about to do before doing it.
     For destructive actions, explain the impact clearly.
     Never make up file paths. Always use list_directory first to confirm what exists.
+    \(FileOrganizerSkill.systemInstructions)
     """
 }

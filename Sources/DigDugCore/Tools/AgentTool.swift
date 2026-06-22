@@ -49,13 +49,42 @@ public enum JSONValue: Codable, Equatable, Sendable {
 }
 
 /// One JSON-schema property accepted by an agent tool.
-public struct ToolParameter: Codable, Equatable, Sendable {
+public final class ToolParameter: Codable, Equatable, Sendable {
     public let type: String
     public let description: String
+    public let items: ToolParameter?
+    public let properties: [String: ToolParameter]?
+    public let required: [String]?
+    public let allowedValues: [String]?
 
-    public init(type: String, description: String) {
+    public init(
+        type: String,
+        description: String,
+        items: ToolParameter? = nil,
+        properties: [String: ToolParameter]? = nil,
+        required: [String]? = nil,
+        allowedValues: [String]? = nil
+    ) {
         self.type = type
         self.description = description
+        self.items = items
+        self.properties = properties
+        self.required = required
+        self.allowedValues = allowedValues
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type, description, items, properties, required
+        case allowedValues = "enum"
+    }
+
+    public static func == (lhs: ToolParameter, rhs: ToolParameter) -> Bool {
+        lhs.type == rhs.type
+            && lhs.description == rhs.description
+            && lhs.items == rhs.items
+            && lhs.properties == rhs.properties
+            && lhs.required == rhs.required
+            && lhs.allowedValues == rhs.allowedValues
     }
 }
 
@@ -101,6 +130,16 @@ public struct ToolArguments: Equatable, Sendable {
         }
         return integer
     }
+
+    /// Decodes all arguments into a strongly typed Codable value.
+    public func decode<Value: Decodable>(_ type: Value.Type) throws -> Value {
+        do {
+            let data = try JSONEncoder().encode(values)
+            return try JSONDecoder().decode(type, from: data)
+        } catch {
+            throw AgentToolError.invalidArgument("Invalid structured arguments: \(error.localizedDescription)")
+        }
+    }
 }
 
 /// A user decision required before a destructive tool can execute.
@@ -111,6 +150,7 @@ public struct ConfirmationRequest: Identifiable, Equatable, Sendable {
     public let detail: String
     public let confirmLabel: String
     public let arguments: [String: JSONValue]
+    public let organizationPlan: OrganizationPlan?
 
     public init(
         id: UUID = UUID(),
@@ -118,7 +158,8 @@ public struct ConfirmationRequest: Identifiable, Equatable, Sendable {
         title: String,
         detail: String,
         confirmLabel: String,
-        arguments: [String: JSONValue]
+        arguments: [String: JSONValue],
+        organizationPlan: OrganizationPlan? = nil
     ) {
         self.id = id
         self.toolName = toolName
@@ -126,6 +167,7 @@ public struct ConfirmationRequest: Identifiable, Equatable, Sendable {
         self.detail = detail
         self.confirmLabel = confirmLabel
         self.arguments = arguments
+        self.organizationPlan = organizationPlan
     }
 }
 

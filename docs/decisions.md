@@ -26,6 +26,12 @@ All architectural and design decisions.
 **Reason**: Canonical checks prevent simple path and symlink bypasses while still allowing useful work in the user home directory and mounted volumes.
 **Status**: Accepted
 
+## [2026-06-22] Product-native file organizer workflow
+**Context**: Free-form sequences of individual move calls are difficult to review and can leave a partially organized folder. A third-party file-organizer skill offered useful planning concepts but lacked DigDug's path, collision, confirmation, rollback, and local-only constraints.
+**Decision**: Implement a clean-room organizer inside `DigDugCore`. A concise `FileOrganizerSkill` system policy requires inventory, metadata inspection, SHA-256 duplicate checks, and uncertain-item review. The model submits one typed `OrganizationPlan` through `organize_files`; Core canonicalizes and preflights every mapping, the UI previews the whole batch once, and `OrganizationPlanExecutor` applies or rolls back the batch deterministically. Delete actions are not representable in an organization plan.
+**Reason**: The model is useful for classification and naming, while deterministic code must own filesystem mutations, invariants, and recovery.
+**Status**: Accepted
+
 ## [2026-06-04] Test runner instead of `swift test`
 **Context**: This machine is Command Line Tools only (no Xcode.app); `swift test` compiles then silently skips (no `xctest` host).
 **Decision**: Ship `DigDugTests` as an executable target (`DigDugTestRunner`) that calls the swift-testing entry point directly, with `Package.swift` `unsafeFlags` pointing at the CLT Frameworks dir.

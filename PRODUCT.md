@@ -19,3 +19,4 @@ Three words: focused, premium, confident. The "dig" theme (excavation, unearthin
 - One accent, used for the user's voice + primary action + active state only.
 - Native macOS materials and vibrancy; respect light/dark.
 - Compact chrome, generous content. The panel is small; every pixel serves the conversation.
+- Safety is reviewed in context: multi-file plans show exact mappings and reasons in one dense native sheet, followed by a compact completion or rollback report.

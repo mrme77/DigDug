@@ -22,7 +22,7 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 - Only local completion models are selectable. Entries with `remote_host` are filtered out.
 
 ## Key paths
-- `Sources/DigDugCore/` — chat models, `OllamaService`, `AgentRunner`, typed file tools, registry, and path safety policy (`Sendable`; streaming via `AsyncThrowingStream`).
+- `Sources/DigDugCore/` — chat/organization models, `OllamaService`, `AgentRunner`, organizer policy, typed file tools, transactional plan executor, registry, and path safety policy (`Sendable`; streaming via `AsyncThrowingStream`).
 - `Sources/DigDugApp/` — `App/` (`DigDugApp.swift`, `FloatingPanel.swift`), `UI/` (`ContentView.swift`, `Theme.swift` = design tokens).
 - `scripts/` — `make_app.sh`, icon generators.
 - `Package.swift` — Swift 6, macOS 13+, dep `swift-markdown-ui` 2.4.x. Carries CLT-only `unsafeFlags` for the test runner; don't strip without reading the comment.
@@ -47,6 +47,7 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 - Keep `OllamaService` properties immutable `Sendable` (Swift 6 strict concurrency).
 - Keep tool arguments `Codable` and `Sendable`; do not replace `JSONValue` with `[String: Any]`.
 - Preserve confirmation for cross-directory moves and all delete operations.
+- Preserve the organizer boundary: one typed batch confirmation, no deletes, maximum 100 mappings, canonical root checks, collision rejection, and rollback.
 - Update the relevant durable doc when you learn a non-obvious fact.
 
 **Ask first**

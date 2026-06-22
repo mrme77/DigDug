@@ -4,7 +4,7 @@
 Provide a lightweight, non-intrusive interface for interacting with local LLMs via Ollama and safely organizing files, floating above the active workspace.
 
 ## Acceptance Criteria
-_All met — author-confirmed 2026-06-04 (see `docs/validation.md`)._
+_Automated criteria are verified on 2026-06-22; manual UI checks are tracked in `docs/validation.md`._
 - [x] A window appears on launch, floating above all other macOS windows.
 - [x] User can type a prompt and receive a response from Ollama.
 - [x] Chat history is displayed in the window.
@@ -18,6 +18,12 @@ _All met — author-confirmed 2026-06-04 (see `docs/validation.md`)._
 - [x] The active agent task can be cancelled from the input bar.
 - [x] Agent turns stop after 10 tool-call rounds.
 - [x] Protected system writes and credential-directory reads are rejected after path canonicalization.
+- [x] File organization inventories and inspects metadata before proposing mutations.
+- [x] Exact duplicates require matching SHA-256 hashes; duplicates are never deleted automatically.
+- [x] Multi-file organization is submitted as one typed mapping plan with reasons and manual-review items.
+- [x] The complete plan is shown once before execution; approving it authorizes no deletions.
+- [x] Plans reject source-root escapes, destination-root escapes, symlinks, existing destinations, duplicate mappings, and batches over 100 files.
+- [x] Batch execution creates required folders, rolls prior moves back after a failure, and reports completion or rollback state.
 
 ## Constraints
 - **Local Only**: Must use local Ollama instance.

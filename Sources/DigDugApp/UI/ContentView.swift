@@ -101,6 +101,10 @@ struct ContentView: View {
                            !viewModel.toolActivities.isEmpty {
                             AgentStatusView(activities: viewModel.toolActivities)
                                 .id("agent-status")
+                            if let report = viewModel.organizationReport {
+                                OrganizationReportView(report: report)
+                                    .id("organization-report")
+                            }
                         }
                     }
                 }
@@ -113,6 +117,9 @@ struct ContentView: View {
             }
             .onChange(of: viewModel.toolActivities) { _ in
                 scroll(to: "agent-status", using: proxy)
+            }
+            .onChange(of: viewModel.organizationReport) { report in
+                if report != nil { scroll(to: "organization-report", using: proxy) }
             }
         }
     }

@@ -49,6 +49,9 @@ public enum FileToolCatalog {
         DeleteItemTool(),
         RenameItemTool(),
         ReadFileTool(),
-        SearchFilesTool()
+        SearchFilesTool(),
+        GetFileMetadataTool(),
+        HashFileTool(),
+        OrganizeFilesTool()
     ]
 }

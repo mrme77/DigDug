@@ -16,6 +16,7 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var statusMessage: String?
     @Published private(set) var toolActivities: [ToolActivity] = []
     @Published private(set) var activeUserMessageID: ChatMessage.ID?
+    @Published private(set) var organizationReport: OrganizationExecutionReport?
     @Published var pendingConfirmation: ConfirmationRequest?
 
     private let service: OllamaService
@@ -79,6 +80,7 @@ final class ChatViewModel: ObservableObject {
         statusMessage = nil
         isSending = true
         toolActivities = []
+        organizationReport = nil
         let userMessage = ChatMessage(sender: .user, text: userPrompt)
         let assistantMessage = ChatMessage(sender: .assistant, text: "")
         messages.append(userMessage)
@@ -149,6 +151,7 @@ final class ChatViewModel: ObservableObject {
         guard !isSending else { return }
         statusMessage = nil
         toolActivities = []
+        organizationReport = nil
         activeUserMessageID = nil
         conversationHistory = []
         messages = [
@@ -175,6 +178,12 @@ final class ChatViewModel: ObservableObject {
             guard let index = toolActivities.firstIndex(where: { $0.id == id }) else { return }
             toolActivities[index].result = result
             toolActivities[index].state = succeeded ? .completed : .failed
+            if toolActivities[index].name == "organize_files",
+               let data = result.data(using: .utf8),
+               let report = try? JSONDecoder().decode(OrganizationExecutionReport.self, from: data) {
+                organizationReport = report
+                toolActivities[index].state = report.status == .completed ? .completed : .failed
+            }
         case .loopLimitReached(let message):
             append(message, to: assistantMessageID)
         }

@@ -13,12 +13,18 @@
 - [x] Added streaming Ollama chat/tool loop with confirmations, cancellation, and 10-round guard.
 - [x] Added local model discovery, capability-aware model/reasoning menus, tool activity, confirmation sheet, and stop action.
 - [x] Added deterministic tests for file operations, safety paths, request schemas, confirmations, and loop guard.
+- [x] Added `get_file_metadata` and streaming SHA-256 `hash_file` inspection tools.
+- [x] Added a clean-room organizer policy that requires inventory, verified duplicates, and uncertain-item review.
+- [x] Added typed batch plans with root containment, symlink/collision/duplicate checks, a 100-file limit, one approval, and rollback.
+- [x] Added plan-preview and structured completion/rollback report UI.
+- [x] Passed the complete app build and 29 authoritative tests, including injected rollback failure.
 
 ## In Flight
 - [ ] Root-cause ~13% CPU seen with a used conversation (idle baseline is fine).
 - [ ] Resolve `swift test` path (use `swift run DigDugTestRunner` meanwhile).
-- [ ] Run the new authoritative test suite and app smoke test after repairing the Command Line Tools compiler/SDK mismatch.
+- [ ] Manually smoke-test the organizer against disposable files in the native panel.
+- [ ] Open the feature branch as a draft PR for author review.
 
 ## Blocked
 - `swift test` still skips silently under Command Line Tools (no `xctest` host). Not a launch blocker — the app builds and runs via `scripts/make_app.sh`.
-- On 2026-06-22, all Swift files passed parser validation, but compilation is blocked before source type checking because CLT's compiler is `swiftlang-6.3.2.1.108` while its SDK modules were built with `swiftlang-6.3.2.1.2`.
+- The restricted automation sandbox requires `--disable-sandbox` plus a writable Clang module cache for SwiftPM. Builds and tests pass with those flags; normal user Terminal sessions may use the canonical commands.
