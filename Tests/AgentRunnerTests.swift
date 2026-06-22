@@ -45,6 +45,52 @@ import Testing
         #expect(limitMessage?.contains("failed twice in a row") == true)
     }
 
+    @Test func identicalReadOnlyRepeatExecutesOnlyOnce() async throws {
+        let registry = ToolRegistry()
+        let tool = CountingReadTool()
+        registry.register(tool)
+        let runner = AgentRunner(client: RepeatingListDirectoryClient(), registry: registry)
+        var startedCount = 0
+
+        let stream = runner.run(
+            userMessage: "keep listing",
+            history: [],
+            configuration: testConfiguration
+        ) { _ in true }
+        for try await event in stream {
+            if case .toolStarted = event { startedCount += 1 }
+        }
+
+        // Re-issued every round, but the read-only dedup runs the real tool just once.
+        // Deduped no-op rounds don't spend the productive budget, so the loop runs to the
+        // absolute cap rather than stopping at maximumToolRounds.
+        #expect(tool.executionCount.value == 1)
+        #expect(startedCount == AgentRunner.maximumTotalRounds)
+    }
+
+    @Test func successfulOrganizeEndsTurnInOneRound() async throws {
+        let registry = ToolRegistry()
+        registry.register(StubOrganizeTool())
+        let runner = AgentRunner(client: RepeatingOrganizeClient(), registry: registry)
+        var startedCount = 0
+        var content = ""
+
+        let stream = runner.run(
+            userMessage: "organize",
+            history: [],
+            configuration: testConfiguration
+        ) { _ in true }
+        for try await event in stream {
+            if case .toolStarted = event { startedCount += 1 }
+            if case .responseChunk(let fragment) = event { content.append(fragment) }
+        }
+
+        // The client re-issues organize_files forever, but one success terminates the turn
+        // with a non-empty closing line (so the chat bubble isn't "No response received").
+        #expect(startedCount == 1)
+        #expect(content.contains("organized"))
+    }
+
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {
         let registry = ToolRegistry()
         registry.register(ConfirmingTool())
@@ -115,6 +161,67 @@ private struct ConfirmingTool: AgentTool {
     }
 
     func execute(arguments: ToolArguments) async throws -> String { "Executed" }
+}
+
+private final class CountingReadTool: AgentTool, @unchecked Sendable {
+    let name = "list_directory"
+    let description = "Counts how often it actually runs."
+    let parameters = ["path": ToolParameter(type: "string", description: "Path")]
+    let requiredParameters = ["path"]
+    let executionCount = Counter()
+
+    func execute(arguments: ToolArguments) async throws -> String {
+        executionCount.increment()
+        return "[]"
+    }
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored = 0
+    var value: Int { lock.withLock { stored } }
+    func increment() { lock.withLock { stored += 1 } }
+}
+
+private struct RepeatingListDirectoryClient: OllamaChatClient {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
+        singleChunkStream(toolCallChunk(name: "list_directory", arguments: ["path": .string("~/x")]))
+    }
+}
+
+private struct StubOrganizeTool: AgentTool {
+    let name = "organize_files"
+    let description = "Stub batch organizer."
+    let parameters: [String: ToolParameter] = [:]
+    let requiredParameters: [String] = []
+
+    func execute(arguments: ToolArguments) async throws -> String {
+        let report = OrganizationExecutionReport(
+            status: .completed,
+            summary: "Stub",
+            plannedCount: 1,
+            processedCount: 1,
+            createdFolders: [],
+            reviewItems: []
+        )
+        return String(decoding: try JSONEncoder().encode(report), as: UTF8.self)
+    }
+}
+
+private struct RepeatingOrganizeClient: OllamaChatClient {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
+        singleChunkStream(toolCallChunk(name: "organize_files"))
+    }
 }
 
 private struct RepeatingToolClient: OllamaChatClient {

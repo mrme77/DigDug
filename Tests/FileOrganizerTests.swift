@@ -160,6 +160,37 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: second.path))
         #expect(!FileManager.default.fileExists(atPath: plan.mappings[0].destination))
     }
+
+    @Test func executorRetriesMoveAfterPermissionDenied() async throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("note.txt")
+        try writeText("note", to: file)
+        let plan = makePlan(root: root, files: [file])
+
+        let report = try await OrganizationPlanExecutor.execute(
+            plan,
+            fileManager: PermissionDeniedOnceFileManager()
+        )
+
+        #expect(report.status == .completed)
+        #expect(report.processedCount == 1)
+        #expect(FileManager.default.fileExists(atPath: plan.mappings[0].destination))
+    }
+
+    @Test func permissionDeniedDetectsPosixAndCocoaErrors() {
+        let posix = NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM))
+        let cocoa = NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
+        let wrapped = NSError(
+            domain: NSCocoaErrorDomain, code: NSFileWriteUnknownError,
+            userInfo: [NSUnderlyingErrorKey: posix]
+        )
+        let unrelated = NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError)
+        #expect(PathPolicy.isPermissionDenied(posix))
+        #expect(PathPolicy.isPermissionDenied(cocoa))
+        #expect(PathPolicy.isPermissionDenied(wrapped))
+        #expect(!PathPolicy.isPermissionDenied(unrelated))
+    }
 }
 
 private func makePlan(root: URL, files: [URL]) -> OrganizationPlan {
@@ -181,6 +212,30 @@ private func makePlan(root: URL, files: [URL]) -> OrganizationPlan {
 private func toolArguments(for plan: OrganizationPlan) throws -> ToolArguments {
     let data = try JSONEncoder().encode(plan)
     return ToolArguments(try JSONDecoder().decode([String: JSONValue].self, from: data))
+}
+
+private final class PermissionDeniedOnceFileManager: OrganizationFileManaging, @unchecked Sendable {
+    private let lock = NSLock()
+    private var denied = false
+    private let local = LocalOrganizationFileManager()
+
+    func fileExists(at url: URL) -> Bool { local.fileExists(at: url) }
+    func isDirectory(at url: URL) -> Bool { local.isDirectory(at: url) }
+    func createDirectory(at url: URL) throws { try local.createDirectory(at: url) }
+    func directoryContents(at url: URL) throws -> [String] { try local.directoryContents(at: url) }
+    func removeItem(at url: URL) throws { try local.removeItem(at: url) }
+
+    func moveItem(at source: URL, to destination: URL) throws {
+        let shouldDeny = lock.withLock {
+            if denied { return false }
+            denied = true
+            return true
+        }
+        if shouldDeny {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(EPERM))
+        }
+        try local.moveItem(at: source, to: destination)
+    }
 }
 
 private final class FailingMoveFileManager: OrganizationFileManaging, @unchecked Sendable {

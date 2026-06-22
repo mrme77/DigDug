@@ -61,7 +61,9 @@ enum OrganizationPlanExecutor {
                         "Destination appeared after approval: \(mapping.destination.path)"
                     )
                 }
-                try fileManager.moveItem(at: mapping.source, to: mapping.destination)
+                try await moveRetryingPermission(
+                    at: mapping.source, to: mapping.destination, using: fileManager
+                )
                 movedItems.append((mapping.source, mapping.destination))
             }
 
@@ -89,6 +91,21 @@ enum OrganizationPlanExecutor {
                 failureMessage: error.localizedDescription,
                 rollbackFailures: rollbackFailures
             )
+        }
+    }
+
+    /// Moves an item, retrying once after a brief pause when access is denied — a macOS TCC folder
+    /// prompt or antivirus block often clears the moment the user approves it.
+    private static func moveRetryingPermission(
+        at source: URL,
+        to destination: URL,
+        using fileManager: any OrganizationFileManaging
+    ) async throws {
+        do {
+            try fileManager.moveItem(at: source, to: destination)
+        } catch where PathPolicy.isPermissionDenied(error) {
+            try await Task.sleep(nanoseconds: 500_000_000)
+            try fileManager.moveItem(at: source, to: destination)
         }
     }
 

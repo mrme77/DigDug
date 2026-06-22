@@ -48,8 +48,7 @@ public struct GetFileMetadataTool: AgentTool {
 
     private func metadataResult(for rawPath: String) -> FileMetadataResult {
         do {
-            let url = try PathPolicy.validateRead(rawPath)
-            try PathPolicy.requireExistingItem(at: url)
+            let url = try PathPolicy.requireExistingItem(at: PathPolicy.validateRead(rawPath))
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             let fileType = attributes[.type] as? FileAttributeType
             let formatter = ISO8601DateFormatter()
@@ -111,8 +110,7 @@ public struct HashFileTool: AgentTool {
 
     private func hashResult(for rawPath: String) async throws -> FileHashItemResult {
         do {
-            let url = try PathPolicy.validateRead(rawPath)
-            try PathPolicy.requireExistingItem(at: url)
+            let url = try PathPolicy.requireExistingItem(at: PathPolicy.validateRead(rawPath))
             guard !PathPolicy.isDirectory(at: url) else {
                 throw AgentToolError.operationFailed("Only regular files can be hashed: \(url.path)")
             }

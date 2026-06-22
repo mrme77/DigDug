@@ -66,10 +66,40 @@ enum PathPolicy {
         return url
     }
 
-    /// Verifies that an item exists at the URL.
-    static func requireExistingItem(at url: URL) throws {
-        guard FileManager.default.fileExists(atPath: url.path) else {
+    /// Verifies an item exists, returning the canonical URL. When the exact path is missing,
+    /// retries against the parent directory folding Unicode spaces — local models routinely
+    /// rewrite the U+202F in macOS screenshot names ("…10.29.08 AM.png") as a plain space.
+    @discardableResult
+    static func requireExistingItem(at url: URL) throws -> URL {
+        if FileManager.default.fileExists(atPath: url.path) { return url }
+        let parent = url.deletingLastPathComponent()
+        let target = foldWhitespace(url.lastPathComponent)
+        let entries = (try? FileManager.default.contentsOfDirectory(atPath: parent.path)) ?? []
+        let matches = entries.filter { foldWhitespace($0) == target }
+        guard matches.count == 1 else {
+            // ponytail: only auto-correct a unique whitespace-fold match; ambiguous or absent → fail.
             throw AgentToolError.operationFailed("Item does not exist: \(url.path)")
+        }
+        return parent.appendingPathComponent(matches[0])
+    }
+
+    /// Collapses every Unicode whitespace character to a plain space for tolerant name matching.
+    private static func foldWhitespace(_ name: String) -> String {
+        String(name.map { $0.isWhitespace ? " " : $0 })
+    }
+
+    /// True when a file operation failed because access was denied — the shape of a macOS TCC
+    /// folder prompt or antivirus block that may succeed on a retry once the user has approved it.
+    static func isPermissionDenied(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        var candidates = [nsError]
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+            candidates.append(underlying)
+        }
+        return candidates.contains { candidate in
+            (candidate.domain == NSCocoaErrorDomain && candidate.code == NSFileWriteNoPermissionError)
+                || (candidate.domain == NSPOSIXErrorDomain
+                    && (candidate.code == Int(EPERM) || candidate.code == Int(EACCES)))
         }
     }
 

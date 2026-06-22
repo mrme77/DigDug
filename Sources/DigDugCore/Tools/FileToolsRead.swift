@@ -57,12 +57,13 @@ public struct ReadFileTool: AgentTool {
     public init() {}
 
     public func execute(arguments: ToolArguments) async throws -> String {
-        let url = try PathPolicy.validateRead(try arguments.requiredString("path"))
+        let url = try PathPolicy.requireExistingItem(
+            at: PathPolicy.validateRead(try arguments.requiredString("path"))
+        )
         let maxBytes = try arguments.integer("max_bytes", default: 4_096)
         guard (1...1_048_576).contains(maxBytes) else {
             throw AgentToolError.invalidArgument("'max_bytes' must be between 1 and 1048576.")
         }
-        try PathPolicy.requireExistingItem(at: url)
 
         guard !PathPolicy.isDirectory(at: url) else {
             throw AgentToolError.operationFailed("Not a regular file: \(url.path)")
@@ -125,7 +126,7 @@ public struct SearchFilesTool: AgentTool {
         guard let enumerator = FileManager.default.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsPackageDescendants]
+            options: [.skipsPackageDescendants, .skipsHiddenFiles]
         ) else {
             throw AgentToolError.operationFailed("Could not search: \(directory.path)")
         }
