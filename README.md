@@ -4,7 +4,7 @@
   <img src="Resources/DigDug.png" alt="DigDug app icon" width="128" height="128">
 </p>
 
-A lightweight, always-on-top macOS chat panel that talks to a **local Ollama** model. Summon it over any app, ask a question, read a markdown/code answer, copy, dismiss. No cloud, no telemetry — inference stays on your machine.
+A lightweight, always-on-top macOS agent that talks to **local Ollama** models. It can stream answers and organize files through confirmed, sandboxed tool calls. No cloud models are listed or used, and inference stays on your machine.
 
 Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-markdown-ui`.
 
@@ -29,6 +29,16 @@ Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-
   ollama serve   # or the menu-bar app; listens on http://localhost:11434
   ```
 
+DigDug discovers installed local chat models from Ollama. The default remains `gemma4:e4b`; models advertise whether tool calling and reasoning controls are available.
+
+## Agent features
+
+- Select any installed local completion model from the panel.
+- Set reasoning effort for models that advertise thinking support.
+- List, search, read, create, copy, move, rename, trash, or delete files.
+- Review live tool activity, confirm destructive actions, or stop the task.
+- Block system writes and credential-directory reads after resolving symlinks.
+
 ## Run
 ```sh
 swift run DigDug                 # launch the panel directly
@@ -47,7 +57,7 @@ Why: Command Line Tools has no `xctest` host, so `swift test` exits 0 without ru
 ## Layout
 | Path | Purpose |
 |---|---|
-| `Sources/DigDugCore/` | Model + `OllamaService` (streaming HTTP client) |
+| `Sources/DigDugCore/` | Ollama chat client, agent loop, typed tools, and safety policy |
 | `Sources/DigDugApp/` | App lifecycle, floating panel, SwiftUI views, `Theme.swift` tokens |
 | `scripts/` | `make_app.sh`, icon generation |
 | `Tests/` | swift-testing suites + `Runner.swift` |

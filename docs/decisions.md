@@ -10,8 +10,20 @@ All architectural and design decisions.
 
 ## [2026-06-02] Local-only inference via Ollama
 **Context**: The app needs an LLM backend.
-**Decision**: Talk only to a local Ollama instance (`http://localhost:11434/api/generate`, streaming) with default model `gemma4:e4b`. The model default lives in `OllamaService.swift` and is the single source of truth.
+**Decision**: Talk only to a local Ollama instance (`http://localhost:11434/api`). Agent chat streams through `/api/chat`; model discovery uses `/api/tags`. The default model remains `gemma4:e4b` in `OllamaService.swift`.
 **Reason**: Privacy, zero cost, no network dependency. Cloud providers are an explicit non-goal (`docs/spec.md`).
+**Status**: Accepted
+
+## [2026-06-22] Typed local agent loop and capability-aware model controls
+**Context**: File organization requires Ollama tool calls, multi-turn tool results, destructive-action confirmation, cancellation, and model-specific thinking controls.
+**Decision**: Use a `Sendable` `JSONValue` instead of `[String: Any]`; stream chat and tool calls through `AgentRunner`; inject async confirmation; cap tool rounds at 10; and filter model discovery to local completion models. The UI enables tools and reasoning only when Ollama advertises those capabilities. Reasoning traces are retained for Ollama history but not displayed as chain-of-thought.
+**Reason**: This preserves Swift 6 concurrency guarantees, the local-only product contract, visible streaming, and explicit control over filesystem mutations.
+**Status**: Accepted
+
+## [2026-06-22] Centralized file path safety
+**Context**: Every file tool must expand home paths and resolve symlinks before access checks, without duplicating security logic.
+**Decision**: Route tool paths through `PathPolicy`. Deny writes to macOS/Unix system roots, deny reads from common credential directories, reject relative paths, and require confirmation for deletion and cross-directory moves.
+**Reason**: Canonical checks prevent simple path and symlink bypasses while still allowing useful work in the user home directory and mounted volumes.
 **Status**: Accepted
 
 ## [2026-06-04] Test runner instead of `swift test`

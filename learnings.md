@@ -58,6 +58,25 @@
 ### Swift 6 strict concurrency
 - `OllamaService` is marked `Sendable` so its `Task` closure can capture `self` inside
   the `AsyncThrowingStream`. Keep all stored properties immutable Sendable types.
+- Agent tool arguments use recursive `JSONValue: Codable & Sendable`; `[String: Any]`
+  is not safe for the strict-concurrency agent loop.
+- `ToolRegistry` protects mutable existential storage with `NSLock`; returned tools conform
+  to `AgentTool: Sendable`.
+
+### Ollama agent API and model discovery
+- Agent turns use streaming `POST /api/chat`; installed models come from `GET /api/tags`.
+- `/api/tags` can include Ollama cloud proxies. Preserve the local-only contract by filtering
+  models that contain `remote_host`, and require the `completion` capability.
+- `capabilities` controls the UI: only advertise tools for `tools` models and reasoning for
+  `thinking` models. The request's `think` field accepts `false` or effort strings.
+
+### CLT compiler/SDK mismatch after partial update (2026-06-22)
+- `swift build` currently fails before source type checking. The installed compiler reports
+  `swiftlang-6.3.2.1.108`, while the macOS SDK Swift modules report `swiftlang-6.3.2.1.2`.
+- A separate sandbox warning targets `~/.cache/clang`; set `CLANG_MODULE_CACHE_PATH` to a
+  writable temporary directory when rechecking, but this does not solve the version mismatch.
+- `swiftc -frontend -parse $(rg --files Sources Tests -g '*.swift' | sort)` remains useful
+  for syntax validation only. Repair/reinstall Command Line Tools before trusting builds/tests.
 
 ### macOS screenshot filenames contain a narrow no-break space (U+202F)
 - Default screenshot names like `Screenshot 2026-06-04 at 8.38.21 PM.png` use **U+202F**

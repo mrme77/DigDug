@@ -11,17 +11,18 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 | Run app (dev) | `swift run DigDug` | Launches the panel directly |
 | Build `.app` bundle | `bash scripts/make_app.sh` | → `build/DigDug.app`; add `--install` to copy to `/Applications`. Generates icon, writes Info.plist, ad-hoc signs. No Xcode needed. |
 | **Run tests** | `swift run DigDugTestRunner` | **NOT `swift test`** — see below |
-| Core typecheck | `swiftc -typecheck Sources/DigDugCore/Models/ChatMessage.swift Sources/DigDugCore/Services/OllamaService.swift` | |
+| Core typecheck | `swift build --target DigDugCore` | Covers the complete core module. |
 
 **`swift test` is broken here and lies.** This machine is Command Line Tools only (no Xcode.app). CLT has no `xctest` host, so `swift test` compiles then **silently skips** — exit 0 even on failure. Always use `swift run DigDugTestRunner` (swift-testing entry point, runs for real). Full details + recovery in `learnings.md`.
 
 ## Runtime dependency: Ollama
-- Endpoint: `http://localhost:11434/api/generate`, streaming POST.
+- API base: `http://localhost:11434/api`; streaming chat uses `/chat`, model discovery uses `/tags`.
 - Model: **`gemma4:e4b`** (default in `Sources/DigDugCore/Services/OllamaService.swift`). This is the single source of truth — match it everywhere.
 - Preflight: `curl http://localhost:11434/api/tags` ; install model with `ollama pull gemma4:e4b`.
+- Only local completion models are selectable. Entries with `remote_host` are filtered out.
 
 ## Key paths
-- `Sources/DigDugCore/` — `Models/ChatMessage.swift`, `Services/OllamaService.swift` (`Sendable`; streaming via `AsyncThrowingStream`).
+- `Sources/DigDugCore/` — chat models, `OllamaService`, `AgentRunner`, typed file tools, registry, and path safety policy (`Sendable`; streaming via `AsyncThrowingStream`).
 - `Sources/DigDugApp/` — `App/` (`DigDugApp.swift`, `FloatingPanel.swift`), `UI/` (`ContentView.swift`, `Theme.swift` = design tokens).
 - `scripts/` — `make_app.sh`, icon generators.
 - `Package.swift` — Swift 6, macOS 13+, dep `swift-markdown-ui` 2.4.x. Carries CLT-only `unsafeFlags` for the test runner; don't strip without reading the comment.
@@ -44,6 +45,8 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 **Always**
 - Run `swift run DigDugTestRunner` after touching `Sources/`; never trust `swift test`.
 - Keep `OllamaService` properties immutable `Sendable` (Swift 6 strict concurrency).
+- Keep tool arguments `Codable` and `Sendable`; do not replace `JSONValue` with `[String: Any]`.
+- Preserve confirmation for cross-directory moves and all delete operations.
 - Update the relevant durable doc when you learn a non-obvious fact.
 
 **Ask first**

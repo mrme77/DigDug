@@ -8,6 +8,7 @@ Your global `~/.claude/CLAUDE.md` defaults still apply (commit only when asked, 
 - Build app: `bash scripts/make_app.sh` (`--install` copies to `/Applications` — ask first).
 - Run: `swift run DigDug`.
 - Test: `swift run DigDugTestRunner` — **never `swift test`** (silently skips under CLT-only; see `learnings.md`).
-- Model: `gemma4:e4b` at `http://localhost:11434/api/generate` (source of truth: `Sources/DigDugCore/Services/OllamaService.swift`).
+- Ollama API base: `http://localhost:11434/api`; chat uses `/chat`, discovery uses `/tags`.
+- Default model: `gemma4:e4b`; the UI lists installed local completion models and their advertised capabilities.
 
 Everything else: see [AGENTS.md](./AGENTS.md).
