@@ -35,7 +35,7 @@ public struct ListDirectoryTool: AgentTool {
                     modified: values.contentModificationDate
                 )
             }
-            return try JSONOutput.encode(entries.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
+            return try encodeJSON(entries.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
         } catch let error as AgentToolError {
             throw error
         } catch {
@@ -135,7 +135,7 @@ public struct SearchFilesTool: AgentTool {
             nameContaining: needle,
             extension: requestedExtension
         )
-        return try JSONOutput.encode(matches.sorted())
+        return try encodeJSON(matches.sorted())
     }
 
     private func collectMatches(
@@ -166,16 +166,18 @@ private struct DirectoryEntry: Encodable {
     let modified: Date?
 }
 
-enum JSONOutput {
-    /// Encodes deterministic, human-readable JSON for returning to the model.
-    static func encode<Value: Encodable>(_ value: Value) throws -> String {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-        encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(value)
-        guard let string = String(data: data, encoding: .utf8) else {
-            throw AgentToolError.operationFailed("Could not encode tool output.")
-        }
-        return string
+let digdugJSONEncoder: JSONEncoder = {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+    encoder.dateEncodingStrategy = .iso8601
+    return encoder
+}()
+
+/// Encodes deterministic, human-readable JSON for returning to the model.
+func encodeJSON<Value: Encodable>(_ value: Value) throws -> String {
+    let data = try digdugJSONEncoder.encode(value)
+    guard let string = String(data: data, encoding: .utf8) else {
+        throw AgentToolError.operationFailed("Could not encode tool output.")
     }
+    return string
 }

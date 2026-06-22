@@ -45,7 +45,7 @@ public struct GetFileMetadataTool: AgentTool {
                 modified: (attributes[.modificationDate] as? Date).map(formatter.string),
                 contentType: UTType(filenameExtension: url.pathExtension)?.identifier
             )
-            return try JSONOutput.encode(metadata)
+            return try encodeJSON(metadata)
         } catch {
             throw AgentToolError.operationFailed(
                 "Could not inspect '\(url.path)': \(error.localizedDescription)"
@@ -91,7 +91,7 @@ public struct HashFileTool: AgentTool {
                 hasher.update(data: data)
             }
             let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
-            return try JSONOutput.encode(
+            return try encodeJSON(
                 FileHashResult(path: url.path, algorithm: "sha256", hash: digest, size: size)
             )
         } catch is CancellationError {
