@@ -117,9 +117,22 @@ public struct SearchFilesTool: AgentTool {
             throw AgentToolError.operationFailed("Could not search: \(directory.path)")
         }
 
+        let matches = try collectMatches(
+            from: enumerator,
+            nameContaining: needle,
+            extension: requestedExtension
+        )
+        return try JSONOutput.encode(matches.sorted())
+    }
+
+    private func collectMatches(
+        from enumerator: FileManager.DirectoryEnumerator,
+        nameContaining needle: String,
+        extension requestedExtension: String?
+    ) throws -> [String] {
         var matches: [String] = []
-        for case let url as URL in enumerator {
-            try Task.checkCancellation()
+        while let url = enumerator.nextObject() as? URL {
+            if Task<Never, Never>.isCancelled { throw CancellationError() }
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey])
             guard values?.isRegularFile == true,
                   url.lastPathComponent.localizedCaseInsensitiveContains(needle) else { continue }
@@ -129,7 +142,7 @@ public struct SearchFilesTool: AgentTool {
             }
             matches.append(url.path)
         }
-        return try JSONOutput.encode(matches.sorted())
+        return matches
     }
 }
 
