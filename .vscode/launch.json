@@ -1,0 +1,44 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:digdug}",
+            "name": "Debug DigDug",
+            "target": "DigDug",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug DigDug"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:digdug}",
+            "name": "Release DigDug",
+            "target": "DigDug",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release DigDug"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:digdug}",
+            "name": "Debug DigDugTestRunner",
+            "target": "DigDugTestRunner",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug DigDugTestRunner"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:digdug}",
+            "name": "Release DigDugTestRunner",
+            "target": "DigDugTestRunner",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release DigDugTestRunner"
+        }
+    ]
+}

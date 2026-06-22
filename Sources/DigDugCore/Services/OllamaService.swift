@@ -1,94 +1,149 @@
 import Foundation
 
-/// Calls a local Ollama server and streams generated tokens.
-public final class OllamaService: Sendable {
+/// A client capable of streaming Ollama chat responses.
+public protocol OllamaChatClient: Sendable {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error>
+}
+
+/// Calls the local Ollama API for model discovery and streaming chat.
+public final class OllamaService: OllamaChatClient, Sendable {
+    public static let defaultModel = "gemma4:e4b"
+
     public let model: String
-    private let endpoint: URL
+    private let baseURL: URL
     private let session: URLSession
 
     public init(
-        endpoint: URL = URL(string: "http://localhost:11434/api/generate")!,
-        model: String = "gemma4:e4b",
+        baseURL: URL = URL(string: "http://localhost:11434/api")!,
+        model: String = OllamaService.defaultModel,
         session: URLSession = .shared
     ) {
-        self.endpoint = endpoint
+        self.baseURL = baseURL
         self.model = model
         self.session = session
     }
 
-    /// Generates a response from Ollama as an async stream of text chunks.
-    public func generateResponseStream(prompt: String) -> AsyncThrowingStream<String, Error> {
+    /// Fetches installed, local completion models and their capabilities.
+    public func availableModels() async throws -> [OllamaModel] {
+        var request = URLRequest(url: baseURL.appendingPathComponent("tags"))
+        request.httpMethod = "GET"
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw OllamaServiceError.invalidResponse
+            }
+            guard httpResponse.statusCode == 200 else {
+                throw mapHTTPError(statusCode: httpResponse.statusCode, model: model)
+            }
+            let payload = try JSONDecoder().decode(OllamaModelsResponse.self, from: data)
+            return payload.models
+                .filter { $0.isLocal && $0.supportsCompletion }
+                .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        } catch let error as OllamaServiceError {
+            throw error
+        } catch let error as URLError where Self.isUnavailableError(error) {
+            throw OllamaServiceError.ollamaUnavailable
+        } catch is DecodingError {
+            throw OllamaServiceError.invalidResponse
+        } catch {
+            throw error
+        }
+    }
+
+    /// Streams newline-delimited chat chunks, including content, thinking, and tool calls.
+    public func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let request = try makeGenerateRequest(prompt: prompt)
+                    let request = try makeChatRequest(
+                        messages: messages,
+                        model: model,
+                        reasoning: reasoning,
+                        tools: tools
+                    )
                     let (bytes, response) = try await session.bytes(for: request)
-
                     guard let httpResponse = response as? HTTPURLResponse else {
                         throw OllamaServiceError.invalidResponse
                     }
-
                     guard httpResponse.statusCode == 200 else {
-                        throw mapHTTPError(statusCode: httpResponse.statusCode)
+                        throw mapHTTPError(statusCode: httpResponse.statusCode, model: model)
                     }
 
                     for try await line in bytes.lines {
+                        try Task.checkCancellation()
                         guard !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                             continue
                         }
-
-                        let chunk = try Self.decodeChunk(from: line)
-
+                        let chunk = try Self.decodeChatChunk(from: line)
                         if let errorMessage = chunk.error {
-                            throw mapOllamaError(errorMessage)
+                            throw mapOllamaError(errorMessage, model: model)
                         }
-
-                        if !chunk.response.isEmpty {
-                            continuation.yield(chunk.response)
-                        }
-
-                        if chunk.done == true {
-                            break
-                        }
+                        continuation.yield(chunk)
+                        if chunk.done == true { break }
                     }
-
                     continuation.finish()
                 } catch let error as OllamaServiceError {
                     continuation.finish(throwing: error)
                 } catch let error as URLError where Self.isUnavailableError(error) {
                     continuation.finish(throwing: OllamaServiceError.ollamaUnavailable)
+                } catch is CancellationError {
+                    continuation.finish(throwing: CancellationError())
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
 
-            continuation.onTermination = { _ in
-                task.cancel()
-            }
+            continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    private func makeGenerateRequest(prompt: String) throws -> URLRequest {
-        let payload = GenerateRequest(model: model, prompt: prompt, stream: true)
-        var request = URLRequest(url: endpoint)
+    static func decodeChatChunk(from line: String) throws -> OllamaChatChunk {
+        guard let data = line.data(using: .utf8) else {
+            throw OllamaServiceError.invalidResponse
+        }
+        return try JSONDecoder().decode(OllamaChatChunk.self, from: data)
+    }
+
+    private func makeChatRequest(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) throws -> URLRequest {
+        let payload = OllamaChatRequest(
+            model: model,
+            messages: messages,
+            tools: tools.isEmpty ? nil : tools,
+            stream: true,
+            think: reasoning.ollamaValue
+        )
+        var request = URLRequest(url: baseURL.appendingPathComponent("chat"))
         request.httpMethod = "POST"
         request.httpBody = try JSONEncoder().encode(payload)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         return request
     }
 
-    private func mapHTTPError(statusCode: Int) -> OllamaServiceError {
+    private func mapHTTPError(statusCode: Int, model: String) -> OllamaServiceError {
         switch statusCode {
-        case 404:
-            return .modelMissing(model)
-        case 500...599:
-            return .ollamaUnavailable
-        default:
-            return .requestFailed(statusCode: statusCode)
+        case 404: .modelMissing(model)
+        case 500...599: .ollamaUnavailable
+        default: .requestFailed(statusCode: statusCode)
         }
     }
 
-    private func mapOllamaError(_ message: String) -> OllamaServiceError {
+    private func mapOllamaError(_ message: String, model: String) -> OllamaServiceError {
         let lowercasedMessage = message.lowercased()
         if lowercasedMessage.contains("model") && lowercasedMessage.contains("not found") {
             return .modelMissing(model)
@@ -98,23 +153,17 @@ public final class OllamaService: Sendable {
 
     private static func isUnavailableError(_ error: URLError) -> Bool {
         switch error.code {
-        case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost, .notConnectedToInternet, .timedOut:
-            return true
+        case .cannotConnectToHost, .cannotFindHost, .networkConnectionLost,
+             .notConnectedToInternet, .timedOut:
+            true
         default:
-            return false
+            false
         }
-    }
-
-    static func decodeChunk(from line: String) throws -> GenerateResponseChunk {
-        guard let data = line.data(using: .utf8) else {
-            throw OllamaServiceError.invalidResponse
-        }
-        return try JSONDecoder().decode(GenerateResponseChunk.self, from: data)
     }
 }
 
 /// A user-facing Ollama failure with enough detail for targeted UI copy.
-public enum OllamaServiceError: LocalizedError, Equatable {
+public enum OllamaServiceError: LocalizedError, Equatable, Sendable {
     case invalidResponse
     case modelMissing(String)
     case ollamaUnavailable
@@ -124,59 +173,23 @@ public enum OllamaServiceError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "Ollama returned a response the app could not read."
+            "Ollama returned a response the app could not read."
         case .modelMissing(let model):
-            return "Ollama is running, but the model '\(model)' is not installed."
+            "Ollama is running, but the model '\(model)' is not installed."
         case .ollamaUnavailable:
-            return "Ollama is not reachable at localhost:11434."
+            "Ollama is not reachable at localhost:11434."
         case .ollamaError(let message):
-            return message
+            message
         case .requestFailed(let statusCode):
-            return "Ollama request failed with status code \(statusCode)."
+            "Ollama request failed with status code \(statusCode)."
         }
     }
 
     public var recoverySuggestion: String? {
         switch self {
-        case .modelMissing(let model):
-            return "Install it with: ollama pull \(model)"
-        case .ollamaUnavailable:
-            return "Start Ollama, then try again."
-        case .invalidResponse, .ollamaError, .requestFailed:
-            return nil
+        case .modelMissing(let model): "Install it with: ollama pull \(model)"
+        case .ollamaUnavailable: "Start Ollama, then try again."
+        case .invalidResponse, .ollamaError, .requestFailed: nil
         }
-    }
-}
-
-/// Request body for Ollama's generate endpoint.
-struct GenerateRequest: Encodable {
-    let model: String
-    let prompt: String
-    let stream: Bool
-}
-
-/// One newline-delimited response chunk from Ollama.
-struct GenerateResponseChunk: Decodable, Equatable {
-    let response: String
-    let done: Bool?
-    let error: String?
-
-    private enum CodingKeys: String, CodingKey {
-        case response
-        case done
-        case error
-    }
-
-    init(response: String = "", done: Bool? = nil, error: String? = nil) {
-        self.response = response
-        self.done = done
-        self.error = error
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        response = try container.decodeIfPresent(String.self, forKey: .response) ?? ""
-        done = try container.decodeIfPresent(Bool.self, forKey: .done)
-        error = try container.decodeIfPresent(String.self, forKey: .error)
     }
 }
