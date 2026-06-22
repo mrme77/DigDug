@@ -62,8 +62,10 @@ import Testing
         }
 
         // Re-issued every round, but the read-only dedup runs the real tool just once.
+        // Deduped no-op rounds don't spend the productive budget, so the loop runs to the
+        // absolute cap rather than stopping at maximumToolRounds.
         #expect(tool.executionCount.value == 1)
-        #expect(startedCount == AgentRunner.maximumToolRounds)
+        #expect(startedCount == AgentRunner.maximumTotalRounds)
     }
 
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {

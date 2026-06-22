@@ -45,6 +45,8 @@ public enum AgentEvent: Equatable, Sendable {
 /// Runs Ollama's multi-turn tool loop with confirmation, cancellation, and a hard round limit.
 public final class AgentRunner: Sendable {
     public static let maximumToolRounds = 10
+    /// Absolute round cap including deduped no-op rounds, so an all-dedup loop still halts.
+    public static let maximumTotalRounds = 20
 
     private let client: any OllamaChatClient
     private let registry: ToolRegistry
@@ -94,6 +96,7 @@ public final class AgentRunner: Sendable {
         let schemas = configuration.supportsTools ? registry.ollamaSchema() : []
         let reasoning = configuration.supportsThinking ? configuration.reasoning : .off
         var toolRounds = 0
+        var totalRounds = 0
         var lastFailureSignature: String?
         var lastFailureMessage = ""
         // Identical read-only calls already run this turn. Small models (gemma4:e4b) loop
@@ -147,12 +150,15 @@ public final class AgentRunner: Sendable {
             messages.append(assistantMessage)
 
             guard !toolCalls.isEmpty else { return }
-            guard toolRounds < Self.maximumToolRounds else {
+            // Two ceilings: productive rounds (real tool work) and an absolute round cap that also
+            // counts deduped no-op rounds, so an all-dedup loop still terminates.
+            guard toolRounds < Self.maximumToolRounds, totalRounds < Self.maximumTotalRounds else {
                 let message = "I was unable to complete the task within a safe number of steps. Please try a more specific instruction."
                 continuation.yield(.loopLimitReached(message))
                 return
             }
-            toolRounds += 1
+            totalRounds += 1
+            var didRealWork = false
 
             for call in toolCalls {
                 try Task.checkCancellation()
@@ -184,6 +190,7 @@ public final class AgentRunner: Sendable {
                     continue
                 }
 
+                didRealWork = true
                 continuation.yield(.toolStarted(invocation))
                 let result = await execute(
                     invocation: invocation,
@@ -211,6 +218,9 @@ public final class AgentRunner: Sendable {
                 lastFailureSignature = signature
                 lastFailureMessage = result.text
             }
+
+            // Deduped-only rounds don't spend the productive budget; the absolute cap bounds them.
+            if didRealWork { toolRounds += 1 }
         }
     }
 
