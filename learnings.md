@@ -103,6 +103,36 @@
   conversation** held a steady ~13% CPU / ~126 MB. Root cause not yet found; measure with
   `sample` while a conversation is loaded, not on a clean launch, or the signal disappears.
 
+### TCC file-access prompts reset on every rebuild (ad-hoc signing)
+- `make_app.sh` ad-hoc signs (`codesign --sign -`), which gives no stable code identity. macOS
+  TCC and Bitdefender treat each rebuild as a brand-new app, so the "DigDug wants to access your
+  files" prompt and the AV nag reappear after every build. There is **no API to suppress the TCC
+  prompt** — it's a macOS security guarantee.
+- Zero-cost workaround: grant the installed app **Full Disk Access** (System Settings → Privacy &
+  Security) and add a Bitdefender exception for `/Applications/DigDug.app`. Both can reset on
+  rebuild because the signature changes. Permanent fix = sign with a real Developer ID + notarize
+  (paid Apple account); then consent persists and the AV stops flagging.
+
+### Agent round ceilings must cover per-file inspection
+- The model inspects files roughly one tool-round each (`get_file_metadata`/`read_file`) before
+  submitting `organize_files`. With the old `maximumToolRounds = 10`, organizing >10 files hit the
+  cap and returned "unable to complete within a safe number of steps." Raised to 30/60. The dedup
+  + repeat-failure guards still bound real loops, so the ceiling is just a backstop — bump further
+  for very large folders.
+
+### SwiftUI: animating to identical endpoints animates nothing
+- The old `TypingIndicator` drove one `phase` 0→3 with `repeatForever` and computed each dot's
+  offset/opacity from it. SwiftUI interpolates the *modifier* between start and end values, not the
+  body each frame, and the wave math landed on the same value at both ends → zero visible motion.
+  Fix: a Bool `animating` toggled `onAppear`, with each dot's own `.animation(...repeatForever()
+  .delay(i*0.2), value: animating)`.
+
+### LazyVStack `.task` replays when a row recycles on scroll
+- The greeting typewriter (`.task(id:)`) re-ran every time the bubble scrolled off and back,
+  re-typing the message. `@State` doesn't survive recycling. Fix: hoist a one-shot flag
+  (`greetingAnimated`) into the view model; the typewriter calls back on completion and the row
+  renders the full text instantly thereafter. Reset the flag in `clearChat`.
+
 ### Publishing: course-reader.txt is gitignored and must stay out of history
 - `course-reader.txt` (© Eleanor Berger course material) is gitignored and was removed
   before the first push; it is **not** in any reachable commit. The repo is public, so do
