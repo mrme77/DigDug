@@ -41,6 +41,10 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 - `digdug-domain-reference` — knowledge: data model + module map.
 - `impeccable` — community frontend/design skill (anchored to `PRODUCT.md`).
 
+## GitHub Workflow
+- Use the existing `gh` CLI session for GitHub work in this repo. The expected login is `mrme77` with the token stored in the macOS keychain.
+- Do not assume a separate Claude-side GitHub auth path; check `gh auth status` and use that session for PRs and repo operations.
+
 ## Boundaries
 **Always**
 - Run `swift run DigDugTestRunner` after touching `Sources/`; never trust `swift test`.
