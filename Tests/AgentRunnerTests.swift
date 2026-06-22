@@ -68,6 +68,25 @@ import Testing
         #expect(startedCount == AgentRunner.maximumTotalRounds)
     }
 
+    @Test func successfulOrganizeEndsTurnInOneRound() async throws {
+        let registry = ToolRegistry()
+        registry.register(StubOrganizeTool())
+        let runner = AgentRunner(client: RepeatingOrganizeClient(), registry: registry)
+        var startedCount = 0
+
+        let stream = runner.run(
+            userMessage: "organize",
+            history: [],
+            configuration: testConfiguration
+        ) { _ in true }
+        for try await event in stream {
+            if case .toolStarted = event { startedCount += 1 }
+        }
+
+        // The client re-issues organize_files forever, but one success terminates the turn.
+        #expect(startedCount == 1)
+    }
+
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {
         let registry = ToolRegistry()
         registry.register(ConfirmingTool())
@@ -168,6 +187,26 @@ private struct RepeatingListDirectoryClient: OllamaChatClient {
         tools: [OllamaToolSchema]
     ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
         singleChunkStream(toolCallChunk(name: "list_directory", arguments: ["path": .string("~/x")]))
+    }
+}
+
+private struct StubOrganizeTool: AgentTool {
+    let name = "organize_files"
+    let description = "Stub batch organizer."
+    let parameters: [String: ToolParameter] = [:]
+    let requiredParameters: [String] = []
+
+    func execute(arguments: ToolArguments) async throws -> String { "{\"status\":\"completed\"}" }
+}
+
+private struct RepeatingOrganizeClient: OllamaChatClient {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
+        singleChunkStream(toolCallChunk(name: "organize_files"))
     }
 }
 

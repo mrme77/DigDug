@@ -203,6 +203,11 @@ public final class AgentRunner: Sendable {
                     OllamaMessage(role: "tool", content: result.text, toolName: invocation.name)
                 )
 
+                // organize_files is a one-shot batch: one plan, one approval. Once it succeeds the
+                // work is done — end the turn so the model can't re-propose the same plan and pop
+                // the approval sheet round after round.
+                if invocation.name == "organize_files", result.succeeded { return }
+
                 guard !result.succeeded else {
                     lastFailureSignature = nil
                     continue
