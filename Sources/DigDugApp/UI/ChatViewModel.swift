@@ -5,9 +5,7 @@ import Foundation
 @MainActor
 final class ChatViewModel: ObservableObject {
     @Published var prompt = ""
-    @Published private(set) var messages: [ChatMessage] = [
-        ChatMessage(sender: .assistant, text: "Hello! I am **DigDug**. Ask me anything.")
-    ]
+    @Published private(set) var messages: [ChatMessage] = [ChatViewModel.greeting]
     @Published private(set) var availableModels: [OllamaModel] = []
     @Published var selectedModelName = OllamaService.defaultModel
     @Published var reasoningEffort: ReasoningEffort = .medium
@@ -157,9 +155,15 @@ final class ChatViewModel: ObservableObject {
         toolActivities = []
         organizationReport = nil
         conversationHistory = []
-        messages = [
-            ChatMessage(sender: .assistant, text: "Hello! I am **DigDug**. Ask me anything.")
-        ]
+        messages = [Self.greeting]
+    }
+
+    /// The opening assistant message shown on launch and after clearing.
+    static var greeting: ChatMessage {
+        ChatMessage(
+            sender: .assistant,
+            text: "Hello! I am your friendly AI assistant ready to dig and dug anything for you."
+        )
     }
 
     private func requestConfirmation(_ request: ConfirmationRequest) async -> Bool {

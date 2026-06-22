@@ -5,6 +5,7 @@ import SwiftUI
 struct ChatBubble: View {
     let message: ChatMessage
     let isSending: Bool
+    var typewriter: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -37,6 +38,8 @@ struct ChatBubble: View {
             Group {
                 if message.text.isEmpty && isSending {
                     TypingIndicator()
+                } else if typewriter {
+                    TypewriterText(text: message.text)
                 } else {
                     Markdown(message.text)
                         .markdownTheme(.digDug)
@@ -65,6 +68,25 @@ struct ChatBubble: View {
                         .strokeBorder(Palette.danger.opacity(0.3))
                 )
         }
+    }
+}
+
+/// Reveals text one character at a time, like it is being typed.
+private struct TypewriterText: View {
+    let text: String
+    @State private var visible = ""
+
+    var body: some View {
+        Markdown(visible)
+            .markdownTheme(.digDug)
+            .textSelection(.enabled)
+            .task(id: text) {
+                visible = ""
+                for character in text {
+                    visible.append(character)
+                    try? await Task.sleep(nanoseconds: 28_000_000)
+                }
+            }
     }
 }
 

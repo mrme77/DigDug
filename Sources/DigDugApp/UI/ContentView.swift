@@ -81,7 +81,11 @@ struct ContentView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     ForEach(viewModel.messages) { message in
-                        ChatBubble(message: message, isSending: viewModel.isSending)
+                        ChatBubble(
+                            message: message,
+                            isSending: viewModel.isSending,
+                            typewriter: message.id == viewModel.messages.first?.id
+                        )
                             .id(message.id)
                             .transition(.asymmetric(
                                 insertion: .move(edge: .bottom).combined(with: .opacity),
