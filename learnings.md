@@ -71,15 +71,24 @@
   `thinking` models. The request's `think` field accepts `false` or effort strings.
 
 ### CLT compiler/SDK mismatch after partial update (2026-06-22)
-- `swift build` currently fails before source type checking. The installed compiler reports
-  `swiftlang-6.3.2.1.108`, while the macOS SDK Swift modules report `swiftlang-6.3.2.1.2`.
-- A separate sandbox warning targets `~/.cache/clang`; set `CLANG_MODULE_CACHE_PATH` to a
-  writable temporary directory when rechecking, but this does not solve the version mismatch.
-- `swiftc -frontend -parse $(rg --files Sources Tests -g '*.swift' | sort)` remains useful
-  for syntax validation only. Repair/reinstall Command Line Tools before trusting builds/tests.
+- Plain SwiftPM commands inside the restricted automation sandbox can fail before source type
+  checking because nested sandboxing and the default Clang cache are unavailable.
+- Use `CLANG_MODULE_CACHE_PATH=/private/tmp/digdug-clang-cache` and pass
+  `--disable-sandbox` to `swift build`/`swift run` in this restricted runner. With those scoped
+  flags, the full app and `DigDugTestRunner` build and run successfully.
 - In the restricted runner, `UTType(filenameExtension:)` may return no type even for `.txt`
   because LaunchServices metadata is unavailable. `ReadFileTool` checks UTType first, then uses
   a conservative known-text-extension allowlist; unknown extensions remain blocked.
+
+### Transactional file organization
+- `organize_files` is intentionally different from repeated `move_item` calls: the model submits
+  one complete mapping, the user approves once, and Core owns execution.
+- Plans cannot express deletion. Sources must be regular non-symlink files inside the declared
+  source root; destinations must be unique, absent, and inside the declared destination root.
+- `OrganizationPlanExecutor` derives missing folders and reverses completed moves after any later
+  failure. Tests inject a failure on the second move to prove rollback rather than relying on a race.
+- `hash_file` streams SHA-256 in 1 MiB chunks so duplicate verification does not load large files
+  into memory. Name similarity is never sufficient evidence for deletion or deduplication.
 
 ### macOS screenshot filenames contain a narrow no-break space (U+202F)
 - Default screenshot names like `Screenshot 2026-06-04 at 8.38.21 PM.png` use **U+202F**

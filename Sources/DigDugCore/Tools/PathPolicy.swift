@@ -8,6 +8,11 @@ enum PathPolicy {
 
     /// Expands `~`, requires an absolute path, and resolves symlinks before validation.
     static func normalizedURL(for path: String) throws -> URL {
+        try expandedURL(for: path).resolvingSymlinksInPath()
+    }
+
+    /// Expands `~` and standardizes an absolute path without following symlinks.
+    static func expandedURL(for path: String) throws -> URL {
         let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw AgentToolError.invalidArgument("Path cannot be empty.")
@@ -28,9 +33,7 @@ enum PathPolicy {
             throw AgentToolError.invalidArgument("Path must be absolute or start with '~'.")
         }
 
-        return URL(fileURLWithPath: expanded)
-            .standardizedFileURL
-            .resolvingSymlinksInPath()
+        return URL(fileURLWithPath: expanded).standardizedFileURL
     }
 
     /// Rejects reads from known credential stores after canonicalizing the path.
@@ -80,6 +83,18 @@ enum PathPolicy {
                 "Destination parent does not exist: \(parent.path)"
             )
         }
+    }
+
+    /// Returns true when a canonical path is equal to or below a canonical root.
+    static func contains(_ url: URL, within root: URL) -> Bool {
+        contains(url.path, root: root.path)
+    }
+
+    /// Returns true when the original path names a symbolic link.
+    static func isSymbolicLink(_ path: String) throws -> Bool {
+        let url = try expandedURL(for: path)
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        return attributes[.type] as? FileAttributeType == .typeSymbolicLink
     }
 
     private static func contains(_ path: String, root: String) -> Bool {

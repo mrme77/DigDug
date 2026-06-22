@@ -15,4 +15,11 @@
 - [x] Add local model and reasoning effort selectors.
 - [x] Add tool status and destructive-action confirmation UI.
 - [x] Add unit and fake-client agent tests.
-- [ ] Repair the local CLT compiler/SDK pairing, then run `swift run DigDugTestRunner` and native smoke checks.
+- [x] Run `DigDugTestRunner` and the full app build with the restricted-runner SwiftPM flags.
+- [x] Add metadata and SHA-256 duplicate inspection tools.
+- [x] Add typed organization plans with one batch confirmation and no delete representation.
+- [x] Add deterministic execution, collision checks, and rollback.
+- [x] Add organizer plan preview and execution report UI.
+- [x] Add organizer happy-path, safety, hash, schema, and injected rollback tests.
+- [ ] Manually smoke-test disposable-file organization in the installed app.
+- [ ] Open a draft PR with the Sasamen contribution trailer.

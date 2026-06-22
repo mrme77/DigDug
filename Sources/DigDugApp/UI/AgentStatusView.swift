@@ -50,7 +50,7 @@ struct AgentStatusView: View {
                     .foregroundStyle(Palette.ink)
                     .textSelection(.enabled)
                 if let result = activity.result {
-                    Text(result)
+                    Text(activity.name == "organize_files" ? organizationResult(activity.state) : result)
                         .font(.system(size: 11))
                         .foregroundStyle(Palette.inkDim)
                         .lineLimit(2)
@@ -58,6 +58,10 @@ struct AgentStatusView: View {
                 }
             }
         }
+    }
+
+    private func organizationResult(_ state: ToolActivity.State) -> String {
+        state == .completed ? "Batch report available below." : "Batch stopped; review the report below."
     }
 
     @ViewBuilder

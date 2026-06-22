@@ -1,19 +1,22 @@
 # Project Plan
 
 ## Current Objective
-Implement and validate DigDug's local file-agent workflow with model selection, reasoning controls, confirmations, cancellation, and durable documentation.
+Implement and validate a review-first, transactional file organizer on top of DigDug's local agent tools.
 
 ## Intended Sequence of Work
-1. Implement typed file tools, safety policy, and registry.
-2. Migrate inference to streaming `/api/chat` with a guarded multi-turn tool loop.
-3. Add model/reasoning controls, tool status, confirmation, and cancellation UI.
-4. Add deterministic unit tests and run the authoritative runner.
-5. Smoke-test Ollama and the native panel; update validation.
+1. Add read-only metadata and SHA-256 inspection tools.
+2. Add typed organization plans, canonical preflight, deterministic execution, and rollback.
+3. Add one batch-review sheet and structured completion/rollback report.
+4. Add safety and failure-injection tests.
+5. Build, test, document, and publish a draft PR for human review.
 
 ## Main Checkpoints
 - [x] Core tool infrastructure and eight file tools implemented.
 - [x] Streaming agent loop, confirmation, cancellation, and loop guard implemented.
 - [x] Model discovery, capability-aware reasoning, and agent UI implemented.
 - [x] Deterministic tool, safety, schema, confirmation, and loop tests authored.
-- [ ] Authoritative build/test run blocked by the local compiler/SDK mismatch recorded in `learnings.md`.
-- [ ] Native panel and real tool-call smoke test pending a healthy Command Line Tools installation and running Ollama.
+- [x] Product-native organizer policy, metadata, SHA-256, typed batch plan, and rollback implemented.
+- [x] Plan preview and structured execution report implemented.
+- [x] Full app build and 29 authoritative tests pass with the restricted-runner flags documented in `learnings.md`.
+- [ ] Manual native-panel organizer smoke test.
+- [ ] Normalize branch history with the Sasamen co-author trailer and open a draft PR.
