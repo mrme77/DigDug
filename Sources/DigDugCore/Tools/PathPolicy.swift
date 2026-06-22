@@ -104,6 +104,16 @@ enum PathPolicy {
         contains(url.path, root: root.path)
     }
 
+    /// Rejects hidden system files (dotfiles) and application bundles as move/copy/organize sources.
+    static func requireNotProtectedBundle(_ url: URL) throws {
+        guard !url.lastPathComponent.hasPrefix(".") else {
+            throw AgentToolError.pathViolation("Hidden system files cannot be moved or copied: \(url.path)")
+        }
+        guard url.pathExtension.lowercased() != "app" else {
+            throw AgentToolError.pathViolation("Application bundles cannot be moved or copied: \(url.path)")
+        }
+    }
+
     /// Returns true when the original path names a symbolic link.
     static func isSymbolicLink(_ path: String) throws -> Bool {
         let url = try expandedURL(for: path)

@@ -21,7 +21,7 @@ public struct ListDirectoryTool: AgentTool {
             let urls = try FileManager.default.contentsOfDirectory(
                 at: url,
                 includingPropertiesForKeys: Array(keys),
-                options: []
+                options: [.skipsHiddenFiles]
             )
             let entries = try urls.map { itemURL -> DirectoryEntry in
                 let values = try itemURL.resourceValues(forKeys: keys)

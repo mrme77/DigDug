@@ -125,6 +125,7 @@ enum OrganizationPlanValidator {
         guard PathPolicy.contains(url, within: root) else {
             throw AgentToolError.pathViolation("Source is outside the source directory: \(url.path)")
         }
+        try PathPolicy.requireNotProtectedBundle(url)
         let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
         guard attributes[.type] as? FileAttributeType == .typeRegular else {
             throw AgentToolError.operationFailed("Only regular files can be organized: \(url.path)")

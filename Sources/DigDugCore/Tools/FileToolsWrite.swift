@@ -58,6 +58,7 @@ public struct MoveItemTool: AgentTool {
         let destination = try PathPolicy.validateWrite(try arguments.requiredString("destination"))
         try PathPolicy.requireExistingItem(at: source)
         try PathPolicy.requireExistingParent(of: destination)
+        try PathPolicy.requireNotProtectedBundle(source)
         do {
             try FileManager.default.moveItem(at: source, to: destination)
             return "Moved: \(source.path) → \(destination.path)"
@@ -81,6 +82,7 @@ public struct CopyItemTool: AgentTool {
         let destination = try PathPolicy.validateWrite(try arguments.requiredString("destination"))
         try PathPolicy.requireExistingItem(at: source)
         try PathPolicy.requireExistingParent(of: destination)
+        try PathPolicy.requireNotProtectedBundle(source)
         do {
             try FileManager.default.copyItem(at: source, to: destination)
             return "Copied: \(source.path) → \(destination.path)"
