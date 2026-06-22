@@ -18,7 +18,20 @@ public final class ToolRegistry: @unchecked Sendable {
 
     /// Registers the complete built-in file tool catalog.
     public func registerFileTools() {
-        FileToolCatalog.all.forEach(register)
+        let tools: [any AgentTool] = [
+            ListDirectoryTool(),
+            CreateFolderTool(),
+            MoveItemTool(),
+            CopyItemTool(),
+            DeleteItemTool(),
+            RenameItemTool(),
+            ReadFileTool(),
+            SearchFilesTool(),
+            GetFileMetadataTool(),
+            HashFileTool(),
+            OrganizeFilesTool()
+        ]
+        tools.forEach(register)
     }
 
     /// Returns the tool registered under a function name.
@@ -37,21 +50,4 @@ public final class ToolRegistry: @unchecked Sendable {
     public func ollamaSchema() -> [OllamaToolSchema] {
         allTools().map { $0.ollamaSchema() }
     }
-}
-
-/// The built-in set of file tools registered at app startup.
-public enum FileToolCatalog {
-    public static let all: [any AgentTool] = [
-        ListDirectoryTool(),
-        CreateFolderTool(),
-        MoveItemTool(),
-        CopyItemTool(),
-        DeleteItemTool(),
-        RenameItemTool(),
-        ReadFileTool(),
-        SearchFilesTool(),
-        GetFileMetadataTool(),
-        HashFileTool(),
-        OrganizeFilesTool()
-    ]
 }
