@@ -46,22 +46,14 @@ struct ContentView: View {
             Image(nsImage: NSApplication.shared.applicationIconImage)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 32, height: 32)
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .shadow(color: Palette.accent.opacity(0.45), radius: 9, y: 2)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("DigDug")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(Palette.ink)
-                HStack(spacing: 5) {
-                    Circle().fill(Palette.online).frame(width: 6, height: 6)
-                    Text("AI Assistant")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.inkDim)
-                }
-            }
+            Text("Dig Dug")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Palette.ink)
 
             Spacer()
 
