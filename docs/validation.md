@@ -2,7 +2,33 @@
 
 Procedures to verify that the application meets its specifications and constraints.
 
-## Latest Run: 2026-06-04 (smoke test)
+## Latest Run: 2026-06-22 (agent implementation)
+
+### Automated checks
+- [x] **Swift parser**: every `.swift` file under `Sources/` and `Tests/` passed
+  `swiftc -frontend -parse` after implementation.
+- [x] **Repository checks**: `git diff --check` passed before the documentation edits.
+- [ ] **Core build**: blocked before source type checking by a mismatched Command Line Tools
+  compiler and SDK (`swiftlang-6.3.2.1.108` vs `swiftlang-6.3.2.1.2`).
+- [ ] **Authoritative tests**: `swift run DigDugTestRunner` cannot start until the same CLT
+  mismatch is repaired. New tests cover all eight file tools, safety paths, schemas,
+  confirmations, and the 10-round loop guard.
+
+### Ollama checks
+- [x] **Initial preflight**: `GET /api/version` returned Ollama `0.30.10` and `GET /api/tags`
+  returned installed models with `completion`, `tools`, and `thinking` capabilities.
+- [x] **Default model metadata**: `gemma4:e4b` was installed and advertised tool plus thinking
+  support. Cloud-backed entries were present, validating the need for `remote_host` filtering.
+- [ ] **Agent round-trip**: Ollama stopped accepting connections before the live `/api/chat`
+  tool-call probe. Repeat after Ollama is running.
+
+### Manual checks pending
+- [ ] Model and reasoning menus populate and correctly disable unsupported capabilities.
+- [ ] A file task streams tool status, pauses for confirmation, and resumes after approval.
+- [ ] Stop cancels an active agent turn and appends `Task cancelled by user.`
+- [ ] The floating panel still launches, hides, reopens, and renders markdown correctly.
+
+## Earlier Run: 2026-06-04 (smoke test)
 
 ### Backend round-trip (machine-verified)
 - [x] **Server reachable**: `curl http://localhost:11434/api/tags` → REACHABLE.
