@@ -6,6 +6,9 @@ import Foundation
 final class ChatViewModel: ObservableObject {
     @Published var prompt = ""
     @Published private(set) var messages: [ChatMessage] = [ChatViewModel.greeting]
+    /// True once the opening greeting has finished its typewriter reveal, so it
+    /// renders instantly when the lazy stack recycles it on scroll.
+    @Published private(set) var greetingAnimated = false
     @Published private(set) var availableModels: [OllamaModel] = []
     @Published var selectedModelName = OllamaService.defaultModel
     @Published var reasoningEffort: ReasoningEffort = .medium
@@ -155,7 +158,13 @@ final class ChatViewModel: ObservableObject {
         toolActivities = []
         organizationReport = nil
         conversationHistory = []
+        greetingAnimated = false
         messages = [Self.greeting]
+    }
+
+    /// Records that the greeting typewriter reveal has played to completion.
+    func markGreetingAnimated() {
+        greetingAnimated = true
     }
 
     /// The opening assistant message shown on launch and after clearing.

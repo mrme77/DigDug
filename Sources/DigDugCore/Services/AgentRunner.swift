@@ -44,9 +44,12 @@ public enum AgentEvent: Equatable, Sendable {
 
 /// Runs Ollama's multi-turn tool loop with confirmation, cancellation, and a hard round limit.
 public final class AgentRunner: Sendable {
-    public static let maximumToolRounds = 10
+    // ponytail: generous ceilings so inspecting many files (one round each) can still reach
+    // the organize_files submission. The dedup + repeat-failure guards bound real loops, so
+    // these are just a backstop. Bump further if organizing very large folders still caps out.
+    public static let maximumToolRounds = 30
     /// Absolute round cap including deduped no-op rounds, so an all-dedup loop still halts.
-    public static let maximumTotalRounds = 20
+    public static let maximumTotalRounds = 60
 
     private let client: any OllamaChatClient
     private let registry: ToolRegistry

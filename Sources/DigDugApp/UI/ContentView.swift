@@ -85,6 +85,8 @@ struct ContentView: View {
                             message: message,
                             isSending: viewModel.isSending,
                             typewriter: message.id == viewModel.messages.first?.id
+                                && !viewModel.greetingAnimated,
+                            onTypewriterComplete: { viewModel.markGreetingAnimated() }
                         )
                             .id(message.id)
                             .transition(.asymmetric(
