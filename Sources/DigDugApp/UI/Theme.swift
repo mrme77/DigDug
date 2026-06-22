@@ -14,6 +14,7 @@ enum Palette {
     static let accentDeep = Color(red: 0.886, green: 0.337, blue: 0.157) // #E25628 ember
     static let border = Color.white.opacity(0.075)
     static let online = Color(red: 0.31, green: 0.82, blue: 0.51)       // ready indicator
+    static let danger = Color(red: 0.94, green: 0.31, blue: 0.29)       // destructive action
 
     static let accentGradient = LinearGradient(
         colors: [accent, accentDeep],
