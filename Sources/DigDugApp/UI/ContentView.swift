@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
@@ -41,14 +42,12 @@ struct ContentView: View {
 
     private var header: some View {
         HStack(spacing: 11) {
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Palette.accentGradient)
+            // The app icon (Resources/DigDug.png) is the same art shown in the README.
+            Image(nsImage: NSApplication.shared.applicationIconImage)
+                .resizable()
+                .interpolation(.high)
                 .frame(width: 32, height: 32)
-                .overlay(
-                    Image(systemName: "shovel")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                )
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .shadow(color: Palette.accent.opacity(0.45), radius: 9, y: 2)
                 .accessibilityHidden(true)
 
