@@ -143,6 +143,7 @@ struct ContentView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: Metrics.bodySize))
                 .foregroundStyle(Palette.ink)
+                .tint(Palette.ink)
                 .lineLimit(1...6)
                 .focused($inputFocused)
                 .disabled(viewModel.isSending)
