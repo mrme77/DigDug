@@ -69,8 +69,7 @@ public struct ReadFileTool: AgentTool {
               !isDirectory.boolValue else {
             throw AgentToolError.operationFailed("Not a regular file: \(url.path)")
         }
-        guard let contentType = UTType(filenameExtension: url.pathExtension),
-              contentType.conforms(to: .text) else {
+        guard isPlainTextFile(url) else {
             throw AgentToolError.operationFailed("Only plain-text files can be read: \(url.path)")
         }
 
@@ -84,6 +83,22 @@ public struct ReadFileTool: AgentTool {
         } catch {
             throw AgentToolError.operationFailed("Could not read '\(url.path)': \(error.localizedDescription)")
         }
+    }
+
+    private func isPlainTextFile(_ url: URL) -> Bool {
+        let fileExtension = url.pathExtension.lowercased()
+        if let contentType = UTType(filenameExtension: fileExtension),
+           contentType.conforms(to: .text) {
+            return true
+        }
+
+        // Some CLT-only environments cannot resolve LaunchServices type metadata.
+        let knownTextExtensions: Set<String> = [
+            "c", "cc", "conf", "cpp", "css", "csv", "h", "hpp", "html", "ini",
+            "java", "js", "json", "log", "md", "m", "mm", "plist", "py", "rb",
+            "rs", "sh", "sql", "swift", "toml", "ts", "tsv", "txt", "xml", "yaml", "yml"
+        ]
+        return knownTextExtensions.contains(fileExtension)
     }
 }
 

@@ -77,6 +77,9 @@
   writable temporary directory when rechecking, but this does not solve the version mismatch.
 - `swiftc -frontend -parse $(rg --files Sources Tests -g '*.swift' | sort)` remains useful
   for syntax validation only. Repair/reinstall Command Line Tools before trusting builds/tests.
+- In the restricted runner, `UTType(filenameExtension:)` may return no type even for `.txt`
+  because LaunchServices metadata is unavailable. `ReadFileTool` checks UTType first, then uses
+  a conservative known-text-extension allowlist; unknown extensions remain blocked.
 
 ### macOS screenshot filenames contain a narrow no-break space (U+202F)
 - Default screenshot names like `Screenshot 2026-06-04 at 8.38.21 PM.png` use **U+202F**
