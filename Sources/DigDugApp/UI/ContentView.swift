@@ -97,7 +97,7 @@ struct ContentView: View {
                                 removal: .opacity
                             ))
 
-                        if message.id == viewModel.activeUserMessageID,
+                        if message.id == viewModel.lastUserMessageID,
                            !viewModel.toolActivities.isEmpty {
                             AgentStatusView(activities: viewModel.toolActivities)
                                 .id("agent-status")

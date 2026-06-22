@@ -15,7 +15,6 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var isLoadingModels = false
     @Published private(set) var statusMessage: String?
     @Published private(set) var toolActivities: [ToolActivity] = []
-    @Published private(set) var activeUserMessageID: ChatMessage.ID?
     @Published private(set) var organizationReport: OrganizationExecutionReport?
     @Published var pendingConfirmation: ConfirmationRequest?
 
@@ -44,6 +43,11 @@ final class ChatViewModel: ObservableObject {
 
     var canSend: Bool {
         !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+    }
+
+    /// The most recently sent user message, used to anchor in-flight tool/report views.
+    var lastUserMessageID: ChatMessage.ID? {
+        messages.last(where: { $0.sender == .user })?.id
     }
 
     /// Refreshes the local-only completion models advertised by Ollama.
@@ -85,7 +89,6 @@ final class ChatViewModel: ObservableObject {
         let assistantMessage = ChatMessage(sender: .assistant, text: "")
         messages.append(userMessage)
         messages.append(assistantMessage)
-        activeUserMessageID = userMessage.id
         prompt = ""
 
         let history = conversationHistory
@@ -152,7 +155,6 @@ final class ChatViewModel: ObservableObject {
         statusMessage = nil
         toolActivities = []
         organizationReport = nil
-        activeUserMessageID = nil
         conversationHistory = []
         messages = [
             ChatMessage(sender: .assistant, text: "Hello! I am **DigDug**. Ask me anything.")
@@ -222,7 +224,6 @@ final class ChatViewModel: ObservableObject {
     private func show(_ error: OllamaServiceError, in messageID: ChatMessage.ID) {
         isSending = false
         responseTask = nil
-        activeUserMessageID = nil
         statusMessage = error.recoverySuggestion
         guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }
         messages[index].sender = .system
