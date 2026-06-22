@@ -64,6 +64,6 @@ public struct OrganizeFilesTool: AgentTool {
     public func execute(arguments: ToolArguments) async throws -> String {
         let plan = try arguments.decode(OrganizationPlan.self)
         let report = try await OrganizationPlanExecutor.execute(plan)
-        return try JSONOutput.encode(report)
+        return try encodeJSON(report)
     }
 }
