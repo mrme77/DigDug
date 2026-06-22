@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import DigDugCore
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
@@ -7,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ToolRegistry.shared.registerFileTools()
+
         // Regular Dock app: a Dock icon makes "reopen" obvious (click it to get
         // the window back), while the menu-bar item and floating panel remain.
         NSApp.setActivationPolicy(.regular)
