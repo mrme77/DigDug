@@ -50,6 +50,27 @@ import Testing
         #expect(!FileManager.default.fileExists(atPath: copy.path))
     }
 
+    @Test func moveResolvesNarrowNoBreakSpaceWhenModelSendsPlainSpace() async throws {
+        let root = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Real macOS screenshot name carries U+202F before "AM"; models echo it as a plain space.
+        let realName = "Screenshot 2026-06-15 at 11.27.51\u{202F}AM.png"
+        let real = root.appendingPathComponent(realName)
+        try writeText("png", to: real)
+        let destination = root.appendingPathComponent("moved.png")
+        let plainSpaceSource = root.appendingPathComponent(
+            realName.replacingOccurrences(of: "\u{202F}", with: " ")
+        )
+        #expect(!FileManager.default.fileExists(atPath: plainSpaceSource.path))
+
+        _ = try await MoveItemTool().execute(arguments: arguments([
+            "source": .string(plainSpaceSource.path), "destination": .string(destination.path)
+        ]))
+
+        #expect(FileManager.default.fileExists(atPath: destination.path))
+        #expect(!FileManager.default.fileExists(atPath: real.path))
+    }
+
     @Test func moveRequiresExistingDestinationParent() async throws {
         let root = try makeTemporaryDirectory()
         defer { try? FileManager.default.removeItem(at: root) }

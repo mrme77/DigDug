@@ -37,7 +37,7 @@ enum OrganizationPlanValidator {
         for mapping in plan.mappings {
             let source = try validatedSource(mapping.source, within: sourceRoot)
             // Hidden files/folders are ignored, not flagged for review — they shouldn't surface at all.
-            guard (try? requireOrganizable(source, path: mapping.source)) != nil else { continue }
+            guard (try? requireOrganizable(source, path: source.path)) != nil else { continue }
             let destination = try validatedDestination(
                 mapping.destination,
                 within: destinationRoot
@@ -59,13 +59,12 @@ enum OrganizationPlanValidator {
 
         var reviewSources = Set<String>()
         let reviewItems = try plan.reviewItems.map { item -> OrganizationReviewItem in
-            let url = try PathPolicy.validateRead(item.source)
+            let url = try PathPolicy.requireExistingItem(at: PathPolicy.validateRead(item.source))
             guard PathPolicy.contains(url, within: sourceRoot) else {
                 throw AgentToolError.pathViolation(
                     "Review item is outside the source directory: \(url.path)"
                 )
             }
-            try PathPolicy.requireExistingItem(at: url)
             guard reviewSources.insert(url.path.lowercased()).inserted else {
                 throw AgentToolError.invalidArgument("Review item appears more than once: \(url.path)")
             }
@@ -117,9 +116,8 @@ enum OrganizationPlanValidator {
     }
 
     private static func validatedSource(_ path: String, within root: URL) throws -> URL {
-        let unresolved = try PathPolicy.expandedURL(for: path)
-        try PathPolicy.requireExistingItem(at: unresolved)
-        let url = try PathPolicy.validateRead(path)
+        let resolved = try PathPolicy.requireExistingItem(at: PathPolicy.expandedURL(for: path))
+        let url = try PathPolicy.validateRead(resolved.path)
         _ = try PathPolicy.validateWrite(url.path)
         guard PathPolicy.contains(url, within: root) else {
             throw AgentToolError.pathViolation("Source is outside the source directory: \(url.path)")

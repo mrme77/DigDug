@@ -53,10 +53,10 @@ public struct MoveItemTool: AgentTool {
     }
 
     public func execute(arguments: ToolArguments) async throws -> String {
-        let source = try PathPolicy.validateWrite(try arguments.requiredString("source"))
+        let requested = try PathPolicy.validateWrite(try arguments.requiredString("source"))
+        let source = try PathPolicy.requireExistingItem(at: requested)
         _ = try PathPolicy.validateRead(source.path)
         let destination = try PathPolicy.validateWrite(try arguments.requiredString("destination"))
-        try PathPolicy.requireExistingItem(at: source)
         try PathPolicy.requireExistingParent(of: destination)
         try PathPolicy.requireNotProtectedBundle(source)
         do {
@@ -78,9 +78,10 @@ public struct CopyItemTool: AgentTool {
     public init() {}
 
     public func execute(arguments: ToolArguments) async throws -> String {
-        let source = try PathPolicy.validateRead(try arguments.requiredString("source"))
+        let source = try PathPolicy.requireExistingItem(
+            at: PathPolicy.validateRead(try arguments.requiredString("source"))
+        )
         let destination = try PathPolicy.validateWrite(try arguments.requiredString("destination"))
-        try PathPolicy.requireExistingItem(at: source)
         try PathPolicy.requireExistingParent(of: destination)
         try PathPolicy.requireNotProtectedBundle(source)
         do {
@@ -118,9 +119,10 @@ public struct DeleteItemTool: AgentTool {
     }
 
     public func execute(arguments: ToolArguments) async throws -> String {
-        let url = try PathPolicy.validateWrite(try arguments.requiredString("path"))
+        let url = try PathPolicy.requireExistingItem(
+            at: PathPolicy.validateWrite(try arguments.requiredString("path"))
+        )
         let permanent = try arguments.boolean("permanent", default: false)
-        try PathPolicy.requireExistingItem(at: url)
         guard url != FileManager.default.homeDirectoryForCurrentUser else {
             throw AgentToolError.pathViolation("Deleting the home directory is not allowed.")
         }
@@ -150,7 +152,9 @@ public struct RenameItemTool: AgentTool {
     public init() {}
 
     public func execute(arguments: ToolArguments) async throws -> String {
-        let source = try PathPolicy.validateWrite(try arguments.requiredString("path"))
+        let source = try PathPolicy.requireExistingItem(
+            at: PathPolicy.validateWrite(try arguments.requiredString("path"))
+        )
         let newName = try arguments.requiredString("new_name")
         guard !newName.isEmpty, newName != ".", newName != "..", !newName.contains("/") else {
             throw AgentToolError.invalidArgument("'new_name' must be a single valid file name.")
@@ -158,7 +162,6 @@ public struct RenameItemTool: AgentTool {
         let destination = try PathPolicy.validateWrite(
             source.deletingLastPathComponent().appendingPathComponent(newName).path
         )
-        try PathPolicy.requireExistingItem(at: source)
         do {
             try FileManager.default.moveItem(at: source, to: destination)
             return "Renamed to: \(newName)"
