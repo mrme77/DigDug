@@ -64,11 +64,13 @@ public struct ReadFileTool: AgentTool {
         }
         try PathPolicy.requireExistingItem(at: url)
 
-        let resourceValues = try url.resourceValues(forKeys: [.contentTypeKey, .isRegularFileKey])
-        guard resourceValues.isRegularFile == true else {
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
+              !isDirectory.boolValue else {
             throw AgentToolError.operationFailed("Not a regular file: \(url.path)")
         }
-        guard resourceValues.contentType?.conforms(to: .text) == true else {
+        guard let contentType = UTType(filenameExtension: url.pathExtension),
+              contentType.conforms(to: .text) else {
             throw AgentToolError.operationFailed("Only plain-text files can be read: \(url.path)")
         }
 
