@@ -203,10 +203,20 @@ public final class AgentRunner: Sendable {
                     OllamaMessage(role: "tool", content: result.text, toolName: invocation.name)
                 )
 
-                // organize_files is a one-shot batch: one plan, one approval. Once it succeeds the
-                // work is done — end the turn so the model can't re-propose the same plan and pop
-                // the approval sheet round after round.
-                if invocation.name == "organize_files", result.succeeded { return }
+                // organize_files is a one-shot batch: one plan, one approval. Once it completes the
+                // work is done — emit a closing line (so the bubble isn't empty) and end the turn so
+                // the model can't re-propose the same plan and pop the approval sheet round after
+                // round. A rolled-back/failed report falls through so the model can react to it.
+                if invocation.name == "organize_files", result.succeeded,
+                   let data = result.text.data(using: .utf8),
+                   let report = try? JSONDecoder().decode(OrganizationExecutionReport.self, from: data),
+                   report.status == .completed {
+                    let count = report.processedCount
+                    continuation.yield(
+                        .responseChunk("Done — organized \(count) file\(count == 1 ? "" : "s").")
+                    )
+                    return
+                }
 
                 guard !result.succeeded else {
                     lastFailureSignature = nil

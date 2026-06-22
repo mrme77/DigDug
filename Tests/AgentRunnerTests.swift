@@ -73,6 +73,7 @@ import Testing
         registry.register(StubOrganizeTool())
         let runner = AgentRunner(client: RepeatingOrganizeClient(), registry: registry)
         var startedCount = 0
+        var content = ""
 
         let stream = runner.run(
             userMessage: "organize",
@@ -81,10 +82,13 @@ import Testing
         ) { _ in true }
         for try await event in stream {
             if case .toolStarted = event { startedCount += 1 }
+            if case .responseChunk(let fragment) = event { content.append(fragment) }
         }
 
-        // The client re-issues organize_files forever, but one success terminates the turn.
+        // The client re-issues organize_files forever, but one success terminates the turn
+        // with a non-empty closing line (so the chat bubble isn't "No response received").
         #expect(startedCount == 1)
+        #expect(content.contains("organized"))
     }
 
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {
@@ -196,7 +200,17 @@ private struct StubOrganizeTool: AgentTool {
     let parameters: [String: ToolParameter] = [:]
     let requiredParameters: [String] = []
 
-    func execute(arguments: ToolArguments) async throws -> String { "{\"status\":\"completed\"}" }
+    func execute(arguments: ToolArguments) async throws -> String {
+        let report = OrganizationExecutionReport(
+            status: .completed,
+            summary: "Stub",
+            plannedCount: 1,
+            processedCount: 1,
+            createdFolders: [],
+            reviewItems: []
+        )
+        return String(decoding: try JSONEncoder().encode(report), as: UTF8.self)
+    }
 }
 
 private struct RepeatingOrganizeClient: OllamaChatClient {
