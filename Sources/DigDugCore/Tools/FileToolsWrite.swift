@@ -60,7 +60,13 @@ public struct MoveItemTool: AgentTool {
         try PathPolicy.requireExistingParent(of: destination)
         try PathPolicy.requireNotProtectedBundle(source)
         do {
-            try FileManager.default.moveItem(at: source, to: destination)
+            do {
+                try FileManager.default.moveItem(at: source, to: destination)
+            } catch where PathPolicy.isPermissionDenied(error) {
+                // A macOS TCC prompt or antivirus block often clears once the user approves it.
+                try await Task.sleep(nanoseconds: 500_000_000)
+                try FileManager.default.moveItem(at: source, to: destination)
+            }
             return "Moved: \(source.path) → \(destination.path)"
         } catch {
             throw AgentToolError.operationFailed("Could not move '\(source.path)': \(error.localizedDescription)")

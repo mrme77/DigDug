@@ -88,6 +88,21 @@ enum PathPolicy {
         String(name.map { $0.isWhitespace ? " " : $0 })
     }
 
+    /// True when a file operation failed because access was denied — the shape of a macOS TCC
+    /// folder prompt or antivirus block that may succeed on a retry once the user has approved it.
+    static func isPermissionDenied(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        var candidates = [nsError]
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError {
+            candidates.append(underlying)
+        }
+        return candidates.contains { candidate in
+            (candidate.domain == NSCocoaErrorDomain && candidate.code == NSFileWriteNoPermissionError)
+                || (candidate.domain == NSPOSIXErrorDomain
+                    && (candidate.code == Int(EPERM) || candidate.code == Int(EACCES)))
+        }
+    }
+
     /// Verifies that the destination parent exists and is a directory.
     static func requireExistingParent(of url: URL) throws {
         let parent = url.deletingLastPathComponent()
