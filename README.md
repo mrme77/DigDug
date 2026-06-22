@@ -39,7 +39,8 @@ DigDug discovers installed local chat models from Ollama. The default remains `g
 - Review live tool activity, confirm destructive actions, or stop the task.
 - Block system writes and credential-directory reads after resolving symlinks.
 - Organize up to 100 files through one reviewable mapping plan; uncertain and duplicate files remain untouched.
-- Verify exact duplicates with local SHA-256 hashing and roll completed moves back if a later move fails.
+- Inspect canonical path, type, size, and dates without reading file content; verify exact duplicates with local SHA-256 hashing.
+- Roll completed moves back automatically if a later move in the same batch fails.
 
 ## Run
 ```sh
