@@ -125,7 +125,7 @@ public struct SearchFilesTool: AgentTool {
         guard let enumerator = FileManager.default.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsPackageDescendants]
+            options: [.skipsPackageDescendants, .skipsHiddenFiles]
         ) else {
             throw AgentToolError.operationFailed("Could not search: \(directory.path)")
         }

@@ -134,6 +134,7 @@ final class ChatViewModel: ObservableObject {
         responseTask?.cancel()
         responseTask = nil
         isSending = false
+        statusMessage = nil
         markRunningToolsCancelled()
         if messages.last?.sender == .assistant, messages.last?.text.isEmpty == true {
             messages.removeLast()
@@ -171,10 +172,12 @@ final class ChatViewModel: ObservableObject {
     private func handle(_ event: AgentEvent, assistantMessageID: ChatMessage.ID) {
         switch event {
         case .reasoning:
-            break
+            statusMessage = "Thinking…"
         case .responseChunk(let chunk):
+            statusMessage = nil
             append(chunk, to: assistantMessageID)
         case .toolStarted(let invocation):
+            statusMessage = nil
             toolActivities.append(ToolActivity(invocation: invocation))
         case .toolFinished(let id, let result, let succeeded):
             guard let index = toolActivities.firstIndex(where: { $0.id == id }) else { return }
@@ -186,7 +189,9 @@ final class ChatViewModel: ObservableObject {
                 organizationReport = report
                 toolActivities[index].state = report.status == .completed ? .completed : .failed
             }
+            statusMessage = "Thinking…"
         case .loopLimitReached(let message):
+            statusMessage = nil
             append(message, to: assistantMessageID)
         }
     }
@@ -195,6 +200,7 @@ final class ChatViewModel: ObservableObject {
         guard isSending else { return }
         isSending = false
         responseTask = nil
+        statusMessage = nil
         guard let index = messages.firstIndex(where: { $0.id == assistantMessageID }) else { return }
         if messages[index].text.isEmpty {
             messages[index].text = "No response received."
@@ -209,6 +215,7 @@ final class ChatViewModel: ObservableObject {
         confirmationContinuation = nil
         guard isSending else { return }
         isSending = false
+        statusMessage = nil
         markRunningToolsCancelled()
         if messages.last?.sender == .assistant, messages.last?.text.isEmpty == true {
             messages.removeLast()
