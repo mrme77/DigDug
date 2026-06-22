@@ -96,6 +96,9 @@ public final class AgentRunner: Sendable {
         var toolRounds = 0
         var lastFailureSignature: String?
         var lastFailureMessage = ""
+        // Identical read-only calls already run this turn. Small models (gemma4:e4b) loop
+        // on list_directory and never advance, burning every round; short-circuit the repeat.
+        var executedReadSignatures: Set<String> = []
 
         while true {
             try Task.checkCancellation()
@@ -157,6 +160,30 @@ public final class AgentRunner: Sendable {
                     name: call.function.name,
                     arguments: call.function.arguments
                 )
+
+                // ponytail: dedup identical read-only repeats by exact args. Safe because the
+                // organize workflow performs no moves until organize_files ends the chain. Ceiling:
+                // a future list → move_item → re-list of the same dir would wrongly dedup; revisit
+                // (clear the set after any mutating tool) only if such a flow is added.
+                let signature = failureSignature(for: invocation)
+                if Self.readOnlyToolNames.contains(invocation.name),
+                   !executedReadSignatures.insert(signature).inserted {
+                    let nudge = """
+                    You already called \(invocation.name) with these exact arguments and the result \
+                    has not changed. Do not call it again. Use the information you already have to \
+                    proceed — for an organization request, submit the plan with organize_files now.
+                    """
+                    continuation.yield(.toolStarted(invocation))
+                    continuation.yield(
+                        .toolFinished(id: invocation.id, result: nudge, succeeded: true)
+                    )
+                    messages.append(
+                        OllamaMessage(role: "tool", content: nudge, toolName: invocation.name)
+                    )
+                    lastFailureSignature = nil
+                    continue
+                }
+
                 continuation.yield(.toolStarted(invocation))
                 let result = await execute(
                     invocation: invocation,
@@ -173,7 +200,6 @@ public final class AgentRunner: Sendable {
                     lastFailureSignature = nil
                     continue
                 }
-                let signature = failureSignature(for: invocation)
                 if signature == lastFailureSignature {
                     let message = """
                     Stopped after the same tool call failed twice in a row with identical arguments.
@@ -188,8 +214,15 @@ public final class AgentRunner: Sendable {
         }
     }
 
+    /// Read-only tools whose identical repeats can be safely short-circuited within a turn.
+    private static let readOnlyToolNames: Set<String> = [
+        "list_directory", "read_file", "search_files", "get_file_metadata", "hash_file"
+    ]
+
     private func failureSignature(for invocation: AgentToolInvocation) -> String {
-        let argumentsData = try? JSONEncoder().encode(invocation.arguments)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let argumentsData = try? encoder.encode(invocation.arguments)
         let argumentsKey = argumentsData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
         return "\(invocation.name)|\(argumentsKey)"
     }

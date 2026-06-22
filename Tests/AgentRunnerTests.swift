@@ -45,6 +45,27 @@ import Testing
         #expect(limitMessage?.contains("failed twice in a row") == true)
     }
 
+    @Test func identicalReadOnlyRepeatExecutesOnlyOnce() async throws {
+        let registry = ToolRegistry()
+        let tool = CountingReadTool()
+        registry.register(tool)
+        let runner = AgentRunner(client: RepeatingListDirectoryClient(), registry: registry)
+        var startedCount = 0
+
+        let stream = runner.run(
+            userMessage: "keep listing",
+            history: [],
+            configuration: testConfiguration
+        ) { _ in true }
+        for try await event in stream {
+            if case .toolStarted = event { startedCount += 1 }
+        }
+
+        // Re-issued every round, but the read-only dedup runs the real tool just once.
+        #expect(tool.executionCount.value == 1)
+        #expect(startedCount == AgentRunner.maximumToolRounds)
+    }
+
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {
         let registry = ToolRegistry()
         registry.register(ConfirmingTool())
@@ -115,6 +136,37 @@ private struct ConfirmingTool: AgentTool {
     }
 
     func execute(arguments: ToolArguments) async throws -> String { "Executed" }
+}
+
+private final class CountingReadTool: AgentTool, @unchecked Sendable {
+    let name = "list_directory"
+    let description = "Counts how often it actually runs."
+    let parameters = ["path": ToolParameter(type: "string", description: "Path")]
+    let requiredParameters = ["path"]
+    let executionCount = Counter()
+
+    func execute(arguments: ToolArguments) async throws -> String {
+        executionCount.increment()
+        return "[]"
+    }
+}
+
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored = 0
+    var value: Int { lock.withLock { stored } }
+    func increment() { lock.withLock { stored += 1 } }
+}
+
+private struct RepeatingListDirectoryClient: OllamaChatClient {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
+        singleChunkStream(toolCallChunk(name: "list_directory", arguments: ["path": .string("~/x")]))
+    }
 }
 
 private struct RepeatingToolClient: OllamaChatClient {
