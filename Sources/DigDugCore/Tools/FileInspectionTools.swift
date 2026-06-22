@@ -76,9 +76,7 @@ public struct HashFileTool: AgentTool {
     public func execute(arguments: ToolArguments) async throws -> String {
         let url = try PathPolicy.validateRead(try arguments.requiredString("path"))
         try PathPolicy.requireExistingItem(at: url)
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-              !isDirectory.boolValue else {
+        guard !PathPolicy.isDirectory(at: url) else {
             throw AgentToolError.operationFailed("Only regular files can be hashed: \(url.path)")
         }
 
