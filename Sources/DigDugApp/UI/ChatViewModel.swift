@@ -129,8 +129,10 @@ final class ChatViewModel: ObservableObject {
         responseTask?.cancel()
         responseTask = nil
         isSending = false
-        activeUserMessageID = nil
         markRunningToolsCancelled()
+        if messages.last?.sender == .assistant, messages.last?.text.isEmpty == true {
+            messages.removeLast()
+        }
         messages.append(ChatMessage(sender: .system, text: "Task cancelled by user."))
     }
 
@@ -194,6 +196,13 @@ final class ChatViewModel: ObservableObject {
         responseTask = nil
         pendingConfirmation = nil
         confirmationContinuation = nil
+        guard isSending else { return }
+        isSending = false
+        markRunningToolsCancelled()
+        if messages.last?.sender == .assistant, messages.last?.text.isEmpty == true {
+            messages.removeLast()
+        }
+        messages.append(ChatMessage(sender: .system, text: "Task cancelled by user."))
     }
 
     private func append(_ chunk: String, to messageID: ChatMessage.ID) {

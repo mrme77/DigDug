@@ -64,7 +64,7 @@ struct ModelControlsView: View {
             ControlLabel(
                 title: viewModel.supportsThinking
                     ? "Reasoning: \(viewModel.reasoningEffort.displayName)"
-                    : "No Reasoning",
+                    : "Reasoning Unavailable",
                 systemImage: "brain"
             )
         }

@@ -51,4 +51,22 @@ import Testing
         #expect(schema[0].function.parameters.required == ["path"])
         #expect(schema[0].function.parameters.properties["path"]?.type == "string")
     }
+
+    @Test func chatRequestEncodesReasoningLevelAndTools() throws {
+        let request = OllamaChatRequest(
+            model: "gemma4:e4b",
+            messages: [OllamaMessage(role: "user", content: "Hello")],
+            tools: [ListDirectoryTool().ollamaSchema()],
+            stream: true,
+            think: ReasoningEffort.high.ollamaValue
+        )
+
+        let data = try JSONEncoder().encode(request)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        #expect(object["model"] as? String == "gemma4:e4b")
+        #expect(object["stream"] as? Bool == true)
+        #expect(object["think"] as? String == "high")
+        #expect((object["tools"] as? [[String: Any]])?.count == 1)
+    }
 }
