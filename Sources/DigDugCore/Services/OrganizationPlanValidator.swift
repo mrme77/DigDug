@@ -16,10 +16,7 @@ struct ValidatedOrganizationPlan: Sendable {
 /// Canonicalizes and preflights an entire organization plan before approval or execution.
 enum OrganizationPlanValidator {
     static func validate(_ plan: OrganizationPlan) throws -> ValidatedOrganizationPlan {
-        let summary = plan.summary.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !summary.isEmpty else {
-            throw AgentToolError.invalidArgument("Organization plan summary cannot be empty.")
-        }
+        let summary = try PathPolicy.requireNonBlank(plan.summary, fieldName: "Organization plan summary")
         guard (1...OrganizationPlan.maximumMappings).contains(plan.mappings.count) else {
             throw AgentToolError.invalidArgument(
                 "Organization plans must contain between 1 and \(OrganizationPlan.maximumMappings) mappings."
@@ -52,10 +49,7 @@ enum OrganizationPlanValidator {
             guard destinations.insert(destination.path.lowercased()).inserted else {
                 throw AgentToolError.invalidArgument("Destination appears more than once: \(destination.path)")
             }
-            let reason = mapping.reason.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !reason.isEmpty else {
-                throw AgentToolError.invalidArgument("Every file mapping requires a reason.")
-            }
+            let reason = try PathPolicy.requireNonBlank(mapping.reason, fieldName: "File mapping reason")
             mappings.append(
                 ValidatedOrganizationMapping(source: source, destination: destination, reason: reason)
             )
@@ -73,10 +67,7 @@ enum OrganizationPlanValidator {
             guard reviewSources.insert(url.path.lowercased()).inserted else {
                 throw AgentToolError.invalidArgument("Review item appears more than once: \(url.path)")
             }
-            let reason = item.reason.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !reason.isEmpty else {
-                throw AgentToolError.invalidArgument("Every review item requires a reason.")
-            }
+            let reason = try PathPolicy.requireNonBlank(item.reason, fieldName: "Review item reason")
             return OrganizationReviewItem(source: url.path, reason: reason)
         }
 
