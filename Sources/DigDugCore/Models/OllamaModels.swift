@@ -131,4 +131,16 @@ struct OllamaChatRequest: Encodable, Sendable {
     let tools: [OllamaToolSchema]?
     let stream: Bool
     let think: JSONValue?
+    let options: OllamaChatOptions?
+}
+
+/// Runtime knobs sent alongside a chat request. Ollama otherwise defaults
+/// num_ctx far below what models like gemma4:e4b (131072) actually support,
+/// which silently truncates long tool-call histories and directory listings.
+struct OllamaChatOptions: Encodable, Sendable {
+    let numCtx: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case numCtx = "num_ctx"
+    }
 }

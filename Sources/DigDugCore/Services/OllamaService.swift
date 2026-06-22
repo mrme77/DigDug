@@ -13,6 +13,9 @@ public protocol OllamaChatClient: Sendable {
 /// Calls the local Ollama API for model discovery and streaming chat.
 public final class OllamaService: OllamaChatClient, Sendable {
     public static let defaultModel = "gemma4:e4b"
+    /// Far above Ollama's default num_ctx so tool schemas, skill instructions, and
+    /// multi-round tool-call history don't get silently truncated mid-task.
+    public static let contextWindow = 16_384
 
     public let model: String
     private let baseURL: URL
@@ -126,7 +129,8 @@ public final class OllamaService: OllamaChatClient, Sendable {
             messages: messages,
             tools: tools.isEmpty ? nil : tools,
             stream: true,
-            think: reasoning.ollamaValue
+            think: reasoning.ollamaValue,
+            options: OllamaChatOptions(numCtx: Self.contextWindow)
         )
         var request = URLRequest(url: baseURL.appendingPathComponent("chat"))
         request.httpMethod = "POST"

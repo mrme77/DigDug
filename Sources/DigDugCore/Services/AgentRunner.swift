@@ -94,6 +94,8 @@ public final class AgentRunner: Sendable {
         let schemas = configuration.supportsTools ? registry.ollamaSchema() : []
         let reasoning = configuration.supportsThinking ? configuration.reasoning : .off
         var toolRounds = 0
+        var lastFailureSignature: String?
+        var lastFailureMessage = ""
 
         while true {
             try Task.checkCancellation()
@@ -166,8 +168,30 @@ public final class AgentRunner: Sendable {
                 messages.append(
                     OllamaMessage(role: "tool", content: result.text, toolName: invocation.name)
                 )
+
+                guard !result.succeeded else {
+                    lastFailureSignature = nil
+                    continue
+                }
+                let signature = failureSignature(for: invocation)
+                if signature == lastFailureSignature {
+                    let message = """
+                    Stopped after the same tool call failed twice in a row with identical arguments.
+                    Last error: \(lastFailureMessage)
+                    """
+                    continuation.yield(.loopLimitReached(message))
+                    return
+                }
+                lastFailureSignature = signature
+                lastFailureMessage = result.text
             }
         }
+    }
+
+    private func failureSignature(for invocation: AgentToolInvocation) -> String {
+        let argumentsData = try? JSONEncoder().encode(invocation.arguments)
+        let argumentsKey = argumentsData.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        return "\(invocation.name)|\(argumentsKey)"
     }
 
     private func execute(

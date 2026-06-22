@@ -58,7 +58,8 @@ import Testing
             messages: [OllamaMessage(role: "user", content: "Hello")],
             tools: [ListDirectoryTool().ollamaSchema()],
             stream: true,
-            think: ReasoningEffort.high.ollamaValue
+            think: ReasoningEffort.high.ollamaValue,
+            options: OllamaChatOptions(numCtx: 16_384)
         )
 
         let data = try JSONEncoder().encode(request)
@@ -68,5 +69,6 @@ import Testing
         #expect(object["stream"] as? Bool == true)
         #expect(object["think"] as? String == "high")
         #expect((object["tools"] as? [[String: Any]])?.count == 1)
+        #expect((object["options"] as? [String: Any])?["num_ctx"] as? Int == 16_384)
     }
 }

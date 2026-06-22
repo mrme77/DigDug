@@ -24,6 +24,27 @@ import Testing
         #expect(limitMessage?.contains("safe number of steps") == true)
     }
 
+    @Test func identicalRepeatedFailureStopsBeforeRoundLimit() async throws {
+        let registry = ToolRegistry()
+        registry.register(AlwaysFailingTool())
+        let runner = AgentRunner(client: RepeatingFailingToolClient(), registry: registry)
+        var startedCount = 0
+        var limitMessage: String?
+
+        let stream = runner.run(
+            userMessage: "keep failing",
+            history: [],
+            configuration: testConfiguration
+        ) { _ in true }
+        for try await event in stream {
+            if case .toolStarted = event { startedCount += 1 }
+            if case .loopLimitReached(let message) = event { limitMessage = message }
+        }
+
+        #expect(startedCount == 2)
+        #expect(limitMessage?.contains("failed twice in a row") == true)
+    }
+
     @Test func declinedConfirmationReturnsErrorThenContinues() async throws {
         let registry = ToolRegistry()
         registry.register(ConfirmingTool())
@@ -65,6 +86,17 @@ private struct EchoTool: AgentTool {
     }
 }
 
+private struct AlwaysFailingTool: AgentTool {
+    let name = "always_fail"
+    let description = "Always fails with the same error."
+    let parameters: [String: ToolParameter] = [:]
+    let requiredParameters: [String] = []
+
+    func execute(arguments: ToolArguments) async throws -> String {
+        throw AgentToolError.operationFailed("This tool always fails.")
+    }
+}
+
 private struct ConfirmingTool: AgentTool {
     let name = "confirming"
     let description = "Always requires confirmation."
@@ -93,6 +125,17 @@ private struct RepeatingToolClient: OllamaChatClient {
         tools: [OllamaToolSchema]
     ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
         singleChunkStream(toolCallChunk(name: "echo", arguments: ["value": .string("ok")]))
+    }
+}
+
+private struct RepeatingFailingToolClient: OllamaChatClient {
+    func chatStream(
+        messages: [OllamaMessage],
+        model: String,
+        reasoning: ReasoningEffort,
+        tools: [OllamaToolSchema]
+    ) -> AsyncThrowingStream<OllamaChatChunk, Error> {
+        singleChunkStream(toolCallChunk(name: "always_fail", arguments: [:]))
     }
 }
 
