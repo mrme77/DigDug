@@ -34,11 +34,11 @@ final class ChatViewModel: ObservableObject {
     }
 
     var supportsThinking: Bool {
-        selectedModel?.supportsThinking ?? selectedModelName == OllamaService.defaultModel
+        selectedModel?.supportsThinking ?? (selectedModelName == OllamaService.defaultModel)
     }
 
     var supportsTools: Bool {
-        selectedModel?.supportsTools ?? selectedModelName == OllamaService.defaultModel
+        selectedModel?.supportsTools ?? (selectedModelName == OllamaService.defaultModel)
     }
 
     var canSend: Bool {
