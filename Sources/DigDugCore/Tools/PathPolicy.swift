@@ -76,13 +76,18 @@ enum PathPolicy {
     /// Verifies that the destination parent exists and is a directory.
     static func requireExistingParent(of url: URL) throws {
         let parent = url.deletingLastPathComponent()
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: parent.path, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
+        guard isDirectory(at: parent) else {
             throw AgentToolError.operationFailed(
                 "Destination parent does not exist: \(parent.path)"
             )
         }
+    }
+
+    /// Returns true when a filesystem item exists at the path and is a directory.
+    static func isDirectory(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
     }
 
     /// Returns true when a canonical path is equal to or below a canonical root.

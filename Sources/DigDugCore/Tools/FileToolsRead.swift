@@ -64,9 +64,7 @@ public struct ReadFileTool: AgentTool {
         }
         try PathPolicy.requireExistingItem(at: url)
 
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-              !isDirectory.boolValue else {
+        guard !PathPolicy.isDirectory(at: url) else {
             throw AgentToolError.operationFailed("Not a regular file: \(url.path)")
         }
         guard isPlainTextFile(url) else {
@@ -120,9 +118,7 @@ public struct SearchFilesTool: AgentTool {
         let needle = try arguments.requiredString("name_contains")
         let requestedExtension = try arguments.optionalString("extension")?
             .trimmingCharacters(in: CharacterSet(charactersIn: "."))
-        var isDirectory: ObjCBool = false
-        guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
-              isDirectory.boolValue else {
+        guard PathPolicy.isDirectory(at: directory) else {
             throw AgentToolError.operationFailed("Directory does not exist: \(directory.path)")
         }
 
