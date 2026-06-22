@@ -182,7 +182,6 @@ final class ChatViewModel: ObservableObject {
         guard isSending else { return }
         isSending = false
         responseTask = nil
-        activeUserMessageID = nil
         guard let index = messages.firstIndex(where: { $0.id == assistantMessageID }) else { return }
         if messages[index].text.isEmpty {
             messages[index].text = "No response received."

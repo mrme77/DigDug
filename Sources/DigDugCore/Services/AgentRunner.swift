@@ -181,7 +181,7 @@ public final class AgentRunner: Sendable {
         let arguments = ToolArguments(invocation.arguments)
         do {
             if let request = try tool.confirmationRequest(arguments: arguments),
-               !await confirmationHandler(request) {
+               await confirmationHandler(request) == false {
                 return ("Error: user declined '\(invocation.name)'.", false)
             }
             let result = try await tool.execute(arguments: arguments)
