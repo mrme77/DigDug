@@ -9,7 +9,7 @@
 - [x] Confirmed in-app UI behaviors: floating-above, minimize/close, live streaming render — author-confirmed 2026-06-04.
 - [x] Measured CPU/RAM: fresh idle ~91 MB / ~0–2% CPU (passes minimal-footprint).
 - [x] Published to GitHub: <https://github.com/mrme77/DigDug> (public, 2026-06-04). `course-reader.txt` kept out of history; Eleanor Berger credited in README. Added app icon + chat/dock screenshots to README.
-- [x] Added typed, Sendable tool schemas and eight sandboxed file tools (2026-06-22).
+- [x] Added typed, Sendable tool schemas and eleven tools including core file tools, metadata inspection, hash verification, and file organizer (2026-06-22).
 - [x] Added streaming Ollama chat/tool loop with confirmations, cancellation, and 10-round guard.
 - [x] Added local model discovery, capability-aware model/reasoning menus, tool activity, confirmation sheet, and stop action.
 - [x] Added deterministic tests for file operations, safety paths, request schemas, confirmations, and loop guard.
@@ -18,12 +18,12 @@
 - [x] Added typed batch plans with root containment, symlink/collision/duplicate checks, a 100-file limit, one approval, and rollback.
 - [x] Added plan-preview and structured completion/rollback report UI.
 - [x] Passed the complete app build and 29 authoritative tests, including injected rollback failure.
+- [x] Opened feature branch as a draft PR for author review; merged to main as PR #1 (2026-06-22).
 
 ## In Flight
 - [ ] Root-cause ~13% CPU seen with a used conversation (idle baseline is fine).
 - [ ] Resolve `swift test` path (use `swift run DigDugTestRunner` meanwhile).
 - [ ] Manually smoke-test the organizer against disposable files in the native panel.
-- [ ] Open the feature branch as a draft PR for author review.
 
 ## Blocked
 - `swift test` still skips silently under Command Line Tools (no `xctest` host). Not a launch blocker — the app builds and runs via `scripts/make_app.sh`.

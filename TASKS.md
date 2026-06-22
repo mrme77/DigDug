@@ -10,7 +10,7 @@
 - [x] Verify implementation against `docs/validation.md` (UI/streaming/Ollama/idle-perf confirmed)
 - [ ] Investigate ~13% CPU with a used conversation (idle baseline is fine); profile with `sample`
 - [x] Implement typed Ollama tool schemas and file tool registry.
-- [x] Implement eight file tools with canonical path safety checks.
+- [x] Implement eleven tools (eight core file tools, plus metadata, hash, and organize tools) with canonical path safety checks.
 - [x] Implement streamed multi-turn agent loop, confirmation, cancellation, and loop guard.
 - [x] Add local model and reasoning effort selectors.
 - [x] Add tool status and destructive-action confirmation UI.
