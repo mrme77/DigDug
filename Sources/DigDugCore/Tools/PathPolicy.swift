@@ -90,6 +90,15 @@ enum PathPolicy {
             && isDirectory.boolValue
     }
 
+    /// Trims whitespace and rejects an empty result.
+    static func requireNonBlank(_ value: String, fieldName: String) throws -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw AgentToolError.invalidArgument("\(fieldName) cannot be empty.")
+        }
+        return trimmed
+    }
+
     /// Returns true when a canonical path is equal to or below a canonical root.
     static func contains(_ url: URL, within root: URL) -> Bool {
         contains(url.path, root: root.path)
