@@ -154,10 +154,7 @@ struct ContentView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(
-                            inputFocused ? Palette.accent.opacity(0.7) : Palette.border,
-                            lineWidth: inputFocused ? 1.5 : 1
-                        )
+                        .strokeBorder(Palette.border, lineWidth: 1)
                 )
                 .onSubmit(viewModel.sendMessage)
 
