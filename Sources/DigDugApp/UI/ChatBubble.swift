@@ -5,6 +5,8 @@ import SwiftUI
 struct ChatBubble: View {
     let message: ChatMessage
     let isSending: Bool
+    var typewriter: Bool = false
+    var onTypewriterComplete: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -34,13 +36,19 @@ struct ChatBubble: View {
                 .shadow(color: Palette.accentDeep.opacity(0.3), radius: 8, y: 3)
 
         case .assistant:
-            Group {
+            VStack(alignment: .leading, spacing: 8) {
                 if message.text.isEmpty && isSending {
                     TypingIndicator()
+                } else if typewriter {
+                    TypewriterText(text: message.text, onComplete: onTypewriterComplete)
                 } else {
                     Markdown(message.text)
                         .markdownTheme(.digDug)
                         .textSelection(.enabled)
+                }
+                if !message.text.isEmpty {
+                    CopyResponseButton(text: message.text)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
             .padding(.vertical, 11)
@@ -68,8 +76,29 @@ struct ChatBubble: View {
     }
 }
 
+/// Reveals text one character at a time, like it is being typed.
+private struct TypewriterText: View {
+    let text: String
+    var onComplete: () -> Void = {}
+    @State private var visible = ""
+
+    var body: some View {
+        Markdown(visible)
+            .markdownTheme(.digDug)
+            .textSelection(.enabled)
+            .task(id: text) {
+                visible = ""
+                for character in text {
+                    visible.append(character)
+                    try? await Task.sleep(nanoseconds: 28_000_000)
+                }
+                if !Task.isCancelled { onComplete() }
+            }
+    }
+}
+
 private struct TypingIndicator: View {
-    @State private var phase = 0.0
+    @State private var animating = false
 
     var body: some View {
         HStack(spacing: 5) {
@@ -77,26 +106,18 @@ private struct TypingIndicator: View {
                 Circle()
                     .fill(Palette.inkDim)
                     .frame(width: 7, height: 7)
-                    .opacity(opacity(for: index))
-                    .offset(y: offset(for: index))
+                    .opacity(animating ? 1 : 0.35)
+                    .offset(y: animating ? -2.5 : 0)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                            .repeatForever()
+                            .delay(Double(index) * 0.2),
+                        value: animating
+                    )
             }
         }
         .frame(height: 16)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: false)) {
-                phase = 3
-            }
-        }
+        .onAppear { animating = true }
         .accessibilityLabel("DigDug is typing")
-    }
-
-    private func opacity(for index: Int) -> Double {
-        let position = (phase + Double(index) * 0.4).truncatingRemainder(dividingBy: 3)
-        return 0.35 + 0.65 * max(0, 1 - abs(position - 1))
-    }
-
-    private func offset(for index: Int) -> CGFloat {
-        let position = (phase + Double(index) * 0.4).truncatingRemainder(dividingBy: 3)
-        return -2.5 * max(0, 1 - abs(position - 1))
     }
 }

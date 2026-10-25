@@ -31,6 +31,13 @@ Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-
 
 DigDug discovers installed local chat models from Ollama. The default remains `gemma4:e4b`; models advertise whether tool calling and reasoning controls are available.
 
+## Chat controls
+
+- **Enter** sends the message; **Shift+Enter** inserts a newline, including after pasting text.
+- **Copy** under a response copies plain text. Code blocks have their own copy control that preserves whitespace.
+- Scroll up to read while a response streams; **Jump to latest** resumes following the response.
+- Use **Stop** to cancel a response. Return never activates Stop.
+
 ## Agent features
 
 - Select any installed local completion model from the panel.
@@ -55,6 +62,13 @@ bash scripts/make_app.sh --install   # also copies to /Applications
 swift run DigDugTestRunner       # ✅ runs swift-testing for real
 # swift test                     # ❌ silently skips under CLT-only — do not use
 ```
+Chat interaction regressions (native editor, clipboard, scrolling, and cancellation):
+```sh
+bash scripts/test_chat_ui.sh
+```
+This uses temporary named clipboards and a non-visible test window. It needs normal macOS pasteboard access.
+For the installed CLT/macOS 27 SDK mismatch, set `DIGDUG_SDK_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk` when running this script; see `learnings.md`.
+
 Why: Command Line Tools has no `xctest` host, so `swift test` exits 0 without running. The `DigDugTestRunner` executable calls the swift-testing entry point directly. See `learnings.md`.
 
 ## Layout
