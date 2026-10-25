@@ -9,6 +9,11 @@
 - [AppKit (NSPanel) Documentation](https://developer.apple.com/documentation/appkit/nspanel)
 
 ## Project Specifics
-- [Project Goals](../AGENTS.md)
-- [Project Specifications](./spec.md)
-- [Decisions Log](./decisions.md)
+- [README: chat controls, launch paths, and test commands](../README.md)
+- [Agent instructions and approval boundaries](../AGENTS.md)
+- [Product and interaction intent](../PRODUCT.md)
+- [Project specifications](spec.md)
+- [Decisions log](decisions.md)
+- [Latest validation and installation evidence](validation.md)
+- [Build, packaging, and toolchain learnings](../learnings.md)
+- [Current plan](../plan.md), [progress](../progress.md), and [tasks](../TASKS.md)

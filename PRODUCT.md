@@ -17,6 +17,10 @@ Three words: focused, premium, confident. The "dig" theme (excavation, unearthin
 ## Strategic design principles
 - Output legibility first: large, comfortable body text; code blocks that read like an editor.
 - One accent, used for the user's voice + primary action + active state only.
-- Native macOS materials and vibrancy; respect light/dark.
+- Native macOS controls and a committed dark theme; light-mode adaptation is not currently implemented.
 - Compact chrome, generous content. The panel is small; every pixel serves the conversation.
+- Multiline composition must be predictable: Enter sends, Shift+Enter inserts a newline, and pasting never submits.
+- Copying is part of reading: responses copy as plain text; code-block copying preserves code and whitespace.
+- Follow streaming output only while the reader stays near the bottom. Scrolling up pauses following, and Jump to latest resumes it.
+- Stopping one turn must never alter a newer turn or activate through the composer's Return key.
 - Safety is reviewed in context: multi-file plans show exact mappings and reasons in one dense native sheet, followed by a compact completion or rollback report.

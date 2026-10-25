@@ -20,6 +20,8 @@ Built with Swift 6 / SwiftUI + AppKit (`NSPanel`). Markdown rendered via `swift-
   <em>Floating chat panel (left); lives in the Dock and menu bar (right).</em>
 </p>
 
+The screenshots above predate the October 2026 chat controls; the current app also has copy buttons and a multiline composer.
+
 ## Requirements
 - macOS 13+
 - Swift toolchain (Command Line Tools is enough — full Xcode not required)
@@ -36,7 +38,8 @@ DigDug discovers installed local chat models from Ollama. The default remains `g
 - **Enter** sends the message; **Shift+Enter** inserts a newline, including after pasting text.
 - **Copy** under a response copies plain text. Code blocks have their own copy control that preserves whitespace.
 - Scroll up to read while a response streams; **Jump to latest** resumes following the response.
-- Use **Stop** to cancel a response. Return never activates Stop.
+- Use **Stop** to cancel a response. Return never activates Stop, and a cancelled response cannot change a newer turn.
+- Conversations remain in memory while the app runs. Closing the panel hides it; quitting the app clears the conversation.
 
 ## Agent features
 
@@ -57,6 +60,28 @@ bash scripts/make_app.sh         # → build/DigDug.app
 bash scripts/make_app.sh --install   # also copies to /Applications
 ```
 
+### Choose the installed app
+
+The installed app is **`/Applications/DigDug.app`**. A local bundle at `build/DigDug.app` is a separate copy and is not updated by installing another build. Spotlight can list both; hold **Command** on a selected result to inspect its location.
+
+To open the installed copy directly:
+
+```sh
+open /Applications/DigDug.app
+```
+
+After installing an update, quit any already running DigDug instances and reopen the installed copy. Closing the panel only hides it. Use the menu-bar item's right-click menu to quit; save any needed conversation text first.
+
+### Local toolchain fallback
+
+On this machine, the default macOS 27 SDK lacks the `SwiftUIMacros` plugin needed by the existing NetworkImage dependency. The installed macOS 26.5 SDK works with the native build system:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/digdug-clang-cache swift run --disable-sandbox --build-system native --sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk DigDug
+```
+
+These flags are a machine-specific workaround. `make_app.sh` currently uses the default SDK and does **not** read `DIGDUG_SDK_PATH`; that variable belongs to the chat-test script. Release packaging on this machine required applying the same SDK/build-system flags and reusing the existing app icon after sandboxed icon generation failed. See [build and packaging notes](learnings.md#release-packaging-and-installed-copy-2026-10-25).
+
 ## Test
 ```sh
 swift run DigDugTestRunner       # ✅ runs swift-testing for real
@@ -71,13 +96,23 @@ For the installed CLT/macOS 27 SDK mismatch, set `DIGDUG_SDK_PATH=/Library/Devel
 
 Why: Command Line Tools has no `xctest` host, so `swift test` exits 0 without running. The `DigDugTestRunner` executable calls the swift-testing entry point directly. See `learnings.md`.
 
+For the same local SDK issue, run both test suites with:
+
+```sh
+CLANG_MODULE_CACHE_PATH=/private/tmp/digdug-clang-cache swift run --disable-sandbox --build-system native --sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk DigDugTestRunner
+DIGDUG_SDK_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk bash scripts/test_chat_ui.sh
+```
+
+The latest verified result is **35 Core tests plus 8 chat interaction tests**. See [validation details and pending manual checks](docs/validation.md).
+
 ## Layout
 | Path | Purpose |
 |---|---|
 | `Sources/DigDugCore/` | Ollama chat client, agent loop, typed tools, and safety policy |
 | `Sources/DigDugApp/` | App lifecycle, floating panel, SwiftUI views, `Theme.swift` tokens |
-| `scripts/` | `make_app.sh`, icon generation |
-| `Tests/` | swift-testing suites + `Runner.swift` |
+| `scripts/` | App packaging, icon generation, and `test_chat_ui.sh` |
+| `Tests/` | Core swift-testing suites + standalone `Runner.swift` |
+| `UITests/` | Native composer, copy, cancellation, and scroll regression tests |
 | `docs/` | spec, decisions, validation, reference index |
 
 ## AI operating surface

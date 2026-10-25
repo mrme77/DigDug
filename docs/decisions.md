@@ -18,7 +18,7 @@ All architectural and design decisions.
 **Context**: File organization requires Ollama tool calls, multi-turn tool results, destructive-action confirmation, cancellation, and model-specific thinking controls.
 **Decision**: Use a `Sendable` `JSONValue` instead of `[String: Any]`; stream chat and tool calls through `AgentRunner`; inject async confirmation; cap tool rounds at 10; and filter model discovery to local completion models. The UI enables tools and reasoning only when Ollama advertises those capabilities. Reasoning traces are retained for Ollama history but not displayed as chain-of-thought.
 **Reason**: This preserves Swift 6 concurrency guarantees, the local-only product contract, visible streaming, and explicit control over filesystem mutations.
-**Status**: Accepted
+**Status**: Accepted; the original 10-round cap is superseded by the 2026-10-25 round-budget entry below.
 
 ## [2026-06-22] Centralized file path safety
 **Context**: Every file tool must expand home paths and resolve symlinks before access checks, without duplicating security logic.
@@ -49,3 +49,21 @@ All architectural and design decisions.
 **Decision**: DigDug is a native macOS app with no browser surface, so Playwright doesn't apply. Use the `fetch` MCP (`opencode.json`) for runtime HTTP/doc retrieval — including hitting the Ollama API (`/api/tags`) and Apple/Ollama docs.
 **Reason**: Pick an MCP that matches the actual workflow rather than the default recommendation.
 **Status**: Accepted
+
+## [2026-10-25] Agent round budgets
+**Context**: Per-file inspection can exhaust a 10-round budget before an organization plan is ready.
+**Decision**: The current runner permits 30 productive tool rounds and 60 total rounds, including deduplicated rounds. Identical read-only calls are deduplicated within a turn, and identical consecutive failures can stop execution earlier.
+**Reason**: Allow inspection of larger folders while bounding repeated model calls. These constants replace the original 10-round cap; they are limits, not a promise that every task will use the whole budget.
+**Status**: Accepted; implemented before PR #10.
+
+## [2026-10-25] Native chat composition, copying, and scroll following
+**Context**: The multiline SwiftUI field and global Return shortcut could submit unexpectedly; responses required manual selection, and streaming updates pulled readers to the bottom.
+**Decision**: Use a native `NSTextView` composer with local Enter/Shift+Enter handling and no global Return shortcut on Send/Stop. Use MarkdownUI's plain-text renderer for response copying and verbatim copying for code blocks. Native live-scroll notifications pause following when users scroll away; Jump to latest resumes it.
+**Reason**: Preserve predictable text editing, make output reusable, and keep the user's reading position stable.
+**Status**: Accepted; merged in [PR #10](https://github.com/mrme77/DigDug/pull/10).
+
+## [2026-10-25] Isolate asynchronous chat turns
+**Context**: A stopped task can complete after a new request has started, modifying state or presenting an obsolete confirmation.
+**Decision**: Assign each request an identity, invalidate it before cancellation, and reject events, finalization, errors, and confirmations from earlier turns. Inject a chat client for deterministic app-level regression tests.
+**Reason**: Make Stop followed immediately by Send safe without relying on task completion timing.
+**Status**: Accepted; merged in PR #10. Eight app interaction tests run separately through `scripts/test_chat_ui.sh`, alongside the existing Core runner.
