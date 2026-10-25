@@ -140,3 +140,10 @@
 - Reconciling after `--amend`: the first `gh repo create --push` sent an older snapshot,
   so local/remote histories diverged (no shared ancestry after amends). Resolved with
   `git push --force-with-lease origin main` (safe: solo brand-new repo).
+
+### Chat interaction tests and macOS 27 SDK fallback (2026-10-25)
+- `scripts/test_chat_ui.sh` builds the app and links its debug objects (excluding the app entry point) into the existing swift-testing executable runner. This tests app code without changing the package's module boundaries or `unsafeFlags`.
+- The standalone compiler requires the CLT `usr/lib/swift/host/plugins/testing` plugin path and the `Library/Developer/usr/lib` runtime search path.
+- Copy tests use isolated named pasteboards, never the user's general clipboard. The restricted shell sandbox blocks pasteboard access; run the test executable with desktop access.
+- Current default macOS 27 SDK fails with a missing `SwiftUIMacros` plugin in NetworkImage. Use the installed macOS 26.5 SDK and `--build-system native` for this toolchain. This is a local workaround, not a package or dependency change; the native build-system flag is deprecated upstream.
+- Native editor Return events are handled locally. Do not restore a global Return shortcut on the Send/Stop button: it conflicts with multiline composition and can trigger Stop.

@@ -22,12 +22,14 @@ final class ChatViewModel: ObservableObject {
     private let service: OllamaService
     private let runner: AgentRunner
     private var conversationHistory: [OllamaMessage] = []
+    private var activeTurnID: UUID?
     private var responseTask: Task<Void, Never>?
     private var confirmationContinuation: CheckedContinuation<Bool, Never>?
 
-    init(service: OllamaService = OllamaService(), registry: ToolRegistry = .shared) {
+    init(service: OllamaService = OllamaService(), registry: ToolRegistry = .shared,
+         client: (any OllamaChatClient)? = nil) {
         self.service = service
-        self.runner = AgentRunner(client: service, registry: registry)
+        self.runner = AgentRunner(client: client ?? service, registry: registry)
     }
 
     var selectedModel: OllamaModel? {
@@ -82,6 +84,8 @@ final class ChatViewModel: ObservableObject {
         let userPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !userPrompt.isEmpty, !isSending else { return }
 
+        let turnID = UUID()
+        activeTurnID = turnID
         statusMessage = nil
         isSending = true
         toolActivities = []
@@ -101,7 +105,7 @@ final class ChatViewModel: ObservableObject {
         )
 
         responseTask = Task { [weak self] in
-            guard let self else { return }
+            guard let self, self.activeTurnID == turnID else { return }
             do {
                 let stream = runner.run(
                     userMessage: userPrompt,
@@ -109,20 +113,25 @@ final class ChatViewModel: ObservableObject {
                     configuration: configuration
                 ) { [weak self] request in
                     guard let self else { return false }
-                    return await self.requestConfirmation(request)
+                    return await self.requestConfirmation(request, turnID: turnID)
                 }
                 for try await event in stream {
+                    guard activeTurnID == turnID, !Task.isCancelled else { return }
                     handle(event, assistantMessageID: assistantMessage.id)
                 }
+                guard activeTurnID == turnID, !Task.isCancelled else { return }
                 finishTurn(
                     userPrompt: userPrompt,
                     assistantMessageID: assistantMessage.id
                 )
             } catch is CancellationError {
+                guard activeTurnID == turnID else { return }
                 finishCancellation()
             } catch let error as OllamaServiceError {
+                guard activeTurnID == turnID else { return }
                 show(error, in: assistantMessage.id)
             } catch {
+                guard activeTurnID == turnID else { return }
                 show(.ollamaError(error.localizedDescription), in: assistantMessage.id)
             }
         }
@@ -131,6 +140,8 @@ final class ChatViewModel: ObservableObject {
     /// Cancels the active concurrency task and declines any pending confirmation.
     func cancelTask() {
         guard isSending else { return }
+        // Invalidate callbacks before releasing confirmation or cancelling the task.
+        activeTurnID = nil
         resolveConfirmation(approved: false)
         responseTask?.cancel()
         responseTask = nil
@@ -175,8 +186,9 @@ final class ChatViewModel: ObservableObject {
         )
     }
 
-    private func requestConfirmation(_ request: ConfirmationRequest) async -> Bool {
-        await withCheckedContinuation { continuation in
+    private func requestConfirmation(_ request: ConfirmationRequest, turnID: UUID) async -> Bool {
+        guard activeTurnID == turnID, !Task.isCancelled else { return false }
+        return await withCheckedContinuation { continuation in
             confirmationContinuation = continuation
             pendingConfirmation = request
         }
@@ -212,6 +224,7 @@ final class ChatViewModel: ObservableObject {
     private func finishTurn(userPrompt: String, assistantMessageID: ChatMessage.ID) {
         guard isSending else { return }
         isSending = false
+        activeTurnID = nil
         responseTask = nil
         statusMessage = nil
         guard let index = messages.firstIndex(where: { $0.id == assistantMessageID }) else { return }
@@ -223,6 +236,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func finishCancellation() {
+        activeTurnID = nil
         responseTask = nil
         pendingConfirmation = nil
         confirmationContinuation = nil
@@ -243,6 +257,7 @@ final class ChatViewModel: ObservableObject {
 
     private func show(_ error: OllamaServiceError, in messageID: ChatMessage.ID) {
         isSending = false
+        activeTurnID = nil
         responseTask = nil
         statusMessage = error.recoverySuggestion
         guard let index = messages.firstIndex(where: { $0.id == messageID }) else { return }

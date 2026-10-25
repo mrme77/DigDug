@@ -2,7 +2,18 @@
 
 Procedures to verify that the application meets its specifications and constraints.
 
-## Latest Run: 2026-06-22 (agent implementation)
+## Latest Run: 2026-10-25 (chat interactions)
+
+- Full debug app build passed using `CLANG_MODULE_CACHE_PATH=/private/tmp/digdug-clang-cache swift build --disable-sandbox --build-system native --sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk --product DigDug`.
+- Existing `DigDugTestRunner`: **35 tests passed**, using the same SDK/build-system options.
+- `DIGDUG_SDK_PATH=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk bash scripts/test_chat_ui.sh`: **8 tests passed** with normal desktop/pasteboard access.
+- New tests exercise the real editor's Enter/Shift+Enter handling after multiline input, disabled editing, response plain-text copying, verbatim code copying, blank prompts, two Stop → Send races, and live-scroll following behavior.
+- Launched a separate temporary review app; visually checked composer layout, response copy control, shortcut hint, and multiline pasting.
+- Live shortcut simulation was blocked by a computer-use interaction conflict. Native key-event regression tests passed; a complete live-model round-trip and manual streaming scroll check remain unverified.
+- Default macOS 27 SDK build failed in the existing NetworkImage dependency because `SwiftUIMacros` is missing. The installed macOS 26.5 SDK plus native build system succeeds. Swift 6.4 emits MarkdownUI isolation warnings; no dependency versions or package flags changed.
+- `git diff --check` passed.
+
+## Earlier Run: 2026-06-22 (agent implementation)
 
 ### Automated checks
 - [x] **Swift parser**: every `.swift` file under `Sources/` and `Tests/` passed

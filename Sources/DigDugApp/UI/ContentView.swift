@@ -3,7 +3,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ChatViewModel()
-    @FocusState private var inputFocused: Bool
+    @State private var followsLatest = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -107,16 +107,31 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 18)
+                .background(TranscriptScrollObserver(followsLatest: $followsLatest))
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if !followsLatest {
+                    Button("Jump to latest") {
+                        followsLatest = true
+                        if let last = viewModel.messages.last { scroll(to: last.id, using: proxy) }
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(12)
+                }
+            }
+            .onChange(of: viewModel.lastUserMessageID) { _ in
+                followsLatest = true
+                if let last = viewModel.messages.last { scroll(to: last.id, using: proxy) }
             }
             .onChange(of: viewModel.messages) { messages in
-                guard let last = messages.last else { return }
+                guard followsLatest, let last = messages.last else { return }
                 scroll(to: last.id, using: proxy)
             }
             .onChange(of: viewModel.toolActivities) { _ in
-                scroll(to: "agent-status", using: proxy)
+                if followsLatest { scroll(to: "agent-status", using: proxy) }
             }
             .onChange(of: viewModel.organizationReport) { report in
-                if report != nil { scroll(to: "organization-report", using: proxy) }
+                if followsLatest, report != nil { scroll(to: "organization-report", using: proxy) }
             }
         }
     }
@@ -136,24 +151,28 @@ struct ContentView: View {
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            TextField("Message DigDug…", text: $viewModel.prompt, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: Metrics.bodySize))
-                .foregroundStyle(Palette.ink)
-                .tint(Palette.ink)
-                .lineLimit(1...6)
-                .focused($inputFocused)
-                .disabled(viewModel.isSending)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Palette.border, lineWidth: 1)
-                )
-                .onSubmit(viewModel.sendMessage)
+            VStack(alignment: .leading, spacing: 5) {
+                MessageComposer(text: $viewModel.prompt, isEnabled: !viewModel.isSending,
+                                send: viewModel.sendMessage)
+                    .frame(height: 76)
+                    .background(Palette.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(alignment: .topLeading) {
+                        if viewModel.prompt.isEmpty {
+                            Text("Message DigDug…")
+                                .font(.system(size: Metrics.bodySize))
+                                .foregroundStyle(Palette.inkDim)
+                                .padding(.leading, 13)
+                                .padding(.top, 8)
+                                .allowsHitTesting(false)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.border))
+                Text("Enter to send · Shift+Enter for a new line")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Palette.inkDim)
+            }
 
             SendOrStopButton(
                 isSending: viewModel.isSending,
@@ -161,6 +180,7 @@ struct ContentView: View {
                 send: viewModel.sendMessage,
                 stop: viewModel.cancelTask
             )
+            .padding(.bottom, 18)
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
@@ -175,9 +195,7 @@ struct ContentView: View {
         to id: ID,
         using proxy: ScrollViewProxy
     ) {
-        withAnimation(.easeOut(duration: 0.22)) {
-            proxy.scrollTo(id, anchor: .bottom)
-        }
+        proxy.scrollTo(id, anchor: .bottom)
     }
 }
 
@@ -204,7 +222,6 @@ private struct SendOrStopButton: View {
                 )
         }
         .buttonStyle(.plain)
-        .keyboardShortcut(.return, modifiers: [])
         .disabled(!isSending && !isEnabled)
         .help(isSending ? "Stop task" : "Send message")
         .accessibilityLabel(isSending ? "Stop task" : "Send message")

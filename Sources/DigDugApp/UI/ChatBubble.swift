@@ -36,7 +36,7 @@ struct ChatBubble: View {
                 .shadow(color: Palette.accentDeep.opacity(0.3), radius: 8, y: 3)
 
         case .assistant:
-            Group {
+            VStack(alignment: .leading, spacing: 8) {
                 if message.text.isEmpty && isSending {
                     TypingIndicator()
                 } else if typewriter {
@@ -45,6 +45,10 @@ struct ChatBubble: View {
                     Markdown(message.text)
                         .markdownTheme(.digDug)
                         .textSelection(.enabled)
+                }
+                if !message.text.isEmpty {
+                    CopyResponseButton(text: message.text)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
             }
             .padding(.vertical, 11)

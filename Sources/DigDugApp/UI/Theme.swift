@@ -53,12 +53,16 @@ extension Theme {
             BackgroundColor(Palette.accentSoft)
         }
         .codeBlock { configuration in
-            configuration.label
+            VStack(alignment: .leading, spacing: 8) {
+                CopyResponseButton(text: configuration.content, isCode: true)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                configuration.label
                 .markdownTextStyle {
                     FontFamilyVariant(.monospaced)
                     FontSize(13)
                     ForegroundColor(Palette.ink)
                 }
+            }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Palette.codeBg)
