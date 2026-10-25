@@ -13,6 +13,16 @@ Procedures to verify that the application meets its specifications and constrain
 - Default macOS 27 SDK build failed in the existing NetworkImage dependency because `SwiftUIMacros` is missing. The installed macOS 26.5 SDK plus native build system succeeds. Swift 6.4 emits MarkdownUI isolation warnings; no dependency versions or package flags changed.
 - `git diff --check` passed.
 
+### Merged release and installation: 2026-10-25
+
+- Chat improvements merged through [PR #10](https://github.com/mrme77/DigDug/pull/10), merge commit `e6bd22ab4999cd021b13a43b11b3e20a01ffd0ae`.
+- Release build passed with the same local SDK/build-system flags and `-c release`.
+- The standard packaging script was adapted temporarily to use that SDK and a fresh output directory. Sandboxed `iconutil` failed; packaging reused the existing `AppIcon.icns` without changing the icon or tracked packaging script.
+- Installed the ad-hoc-signed release at `/Applications/DigDug.app` after explicit approval, retaining the previous bundle in a temporary backup. macOS LaunchServices registration succeeded.
+- Installed `CFBundleVersion`: `20261025.1447`. `DigDugRevision` records the merge commit above. These identify this local package; the tracked script still defaults to version `1.0.0`.
+- `codesign --verify --deep --strict` passed for the installed bundle. Its executable matched the release SHA-256: `a3ffc34656f51eb8e6d4e9e0fba7c89bdff974a81e268411954b555208997f9c`.
+- Two older processes were running at installation time; the user was given commands to stop them and reopen the installed app. A post-install launch and live-model round-trip have not been independently verified.
+
 ## Earlier Run: 2026-06-22 (agent implementation)
 
 ### Automated checks

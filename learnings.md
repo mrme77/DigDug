@@ -11,8 +11,8 @@
 - Accent carries user bubbles + primary action + focus/active state only (restrained).
   Body text 15pt, near-white ink on charcoal (contrast ≥4.5:1). Code blocks are
   near-black with a hairline border, 13pt mono.
-- Subtitle is **"AI Assistant"** (not "Local Ollama chat"). Animated three-dot typing
-  indicator shows while the model streams an empty assistant message.
+- The header currently shows **"Dig Dug"** without a subtitle. An animated three-dot typing
+  indicator shows while the active assistant message is empty.
 - `PRODUCT.md` at repo root is the impeccable design anchor. Theme objects from
   MarkdownUI need `@MainActor` under Swift 6 (Theme isn't Sendable).
 
@@ -147,3 +147,11 @@
 - Copy tests use isolated named pasteboards, never the user's general clipboard. The restricted shell sandbox blocks pasteboard access; run the test executable with desktop access.
 - Current default macOS 27 SDK fails with a missing `SwiftUIMacros` plugin in NetworkImage. Use the installed macOS 26.5 SDK and `--build-system native` for this toolchain. This is a local workaround, not a package or dependency change; the native build-system flag is deprecated upstream.
 - Native editor Return events are handled locally. Do not restore a global Return shortcut on the Send/Stop button: it conflicts with multiline composition and can trigger Stop.
+
+### Release packaging and installed copy (2026-10-25)
+- The standard `scripts/make_app.sh` invokes the default SDK/build system and does not read `DIGDUG_SDK_PATH`. The chat-test script does read that variable. Do not suggest setting it as a packaging fix.
+- Release compilation passed with `CLANG_MODULE_CACHE_PATH=/private/tmp/digdug-clang-cache swift build --disable-sandbox --build-system native --sdk /Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk -c release --product DigDug`.
+- For this installation, packaging used a temporary adaptation of the existing script. Sandboxed `iconutil` returned `Invalid Iconset`; the completed bundle reused the existing `AppIcon.icns`, then passed strict ad-hoc signature verification. The tracked packaging script was not changed, so this remains an open packaging limitation on this host.
+- `/Applications/DigDug.app` is the installed app; `build/DigDug.app` and temporary review bundles are separate copies. Spotlight can list more than one. Open the installed copy with `open /Applications/DigDug.app` after quitting older instances; hiding the panel does not quit the process.
+- Replacing an app bundle does not restart its existing process. Preserve needed in-memory chat before quitting; do not assume a running panel has the newly installed binary.
+- Installed local build `20261025.1447` records merged revision `e6bd22ab4999cd021b13a43b11b3e20a01ffd0ae` in `DigDugRevision`. These fields were set during this local packaging step; the repository script still uses version `1.0.0`.

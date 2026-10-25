@@ -11,9 +11,11 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 | Run app (dev) | `swift run DigDug` | Launches the panel directly |
 | Build `.app` bundle | `bash scripts/make_app.sh` | → `build/DigDug.app`; add `--install` to copy to `/Applications`. Generates icon, writes Info.plist, ad-hoc signs. No Xcode needed. |
 | **Run tests** | `swift run DigDugTestRunner` | **NOT `swift test`** — see below |
+| Chat interaction tests | `bash scripts/test_chat_ui.sh` | Native editor, copy, cancellation, and scrolling; requires desktop/pasteboard access |
+| Open installed copy | `open /Applications/DigDug.app` | Quit older instances after installing; hiding the panel is not quitting |
 | Core typecheck | `swift build --target DigDugCore` | Covers the complete core module. |
 
-**`swift test` is broken here and lies.** This machine is Command Line Tools only (no Xcode.app). CLT has no `xctest` host, so `swift test` compiles then **silently skips** — exit 0 even on failure. Always use `swift run DigDugTestRunner` (swift-testing entry point, runs for real). Full details + recovery in `learnings.md`.
+**`swift test` is broken here and lies.** This machine is Command Line Tools only (no Xcode.app). CLT has no `xctest` host, so `swift test` compiles then **silently skips** — exit 0 even on failure. Always use `swift run DigDugTestRunner` (swift-testing entry point, runs for real). Full details + recovery in `learnings.md`. The current macOS 27 SDK also lacks the SwiftUI macro plugin required by NetworkImage; use the documented macOS 26.5 SDK/native-build-system fallback. `make_app.sh` does not read `DIGDUG_SDK_PATH`.
 
 ## Runtime dependency: Ollama
 - API base: `http://localhost:11434/api`; streaming chat uses `/chat`, model discovery uses `/tags`.
@@ -24,7 +26,11 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 ## Key paths
 - `Sources/DigDugCore/` — chat/organization models, `OllamaService`, `AgentRunner`, organizer policy, typed file tools, transactional plan executor, registry, and path safety policy (`Sendable`; streaming via `AsyncThrowingStream`).
 - `Sources/DigDugApp/` — `App/` (`DigDugApp.swift`, `FloatingPanel.swift`), `UI/` (`ContentView.swift`, `Theme.swift` = design tokens).
-- `scripts/` — `make_app.sh`, icon generators.
+- `scripts/` — `make_app.sh`, icon generators, `test_chat_ui.sh`.
+- `UITests/` — app interaction regressions, linked against the actual debug app objects.
+- Composer/copy/scroll UI: `MessageComposer.swift`, `CopyResponseButton.swift`, `TranscriptScrollObserver.swift`; `ChatViewModel` isolates each asynchronous turn by identity.
+- Agent budgets: 30 productive tool rounds and 60 total rounds, with earlier deduplication/repeated-failure guards.
+- Chat state is in memory only; tool activities and organization reports are replaced by the next turn.
 - `Package.swift` — Swift 6, macOS 13+, dep `swift-markdown-ui` 2.4.x. Carries CLT-only `unsafeFlags` for the test runner; don't strip without reading the comment.
 
 ## Durable docs
@@ -47,7 +53,7 @@ Always-on-top `NSPanel` you summon over other apps, ask a question, read a markd
 
 ## Boundaries
 **Always**
-- Run `swift run DigDugTestRunner` after touching `Sources/`; never trust `swift test`.
+- Run `swift run DigDugTestRunner` after touching `Sources/`; never trust `swift test`. Run `bash scripts/test_chat_ui.sh` for composer, copy, scroll, or view-model changes, using the local SDK fallback if needed.
 - Keep `OllamaService` properties immutable `Sendable` (Swift 6 strict concurrency).
 - Keep tool arguments `Codable` and `Sendable`; do not replace `JSONValue` with `[String: Any]`.
 - Preserve confirmation for cross-directory moves and all delete operations.

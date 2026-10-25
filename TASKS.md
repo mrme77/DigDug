@@ -22,4 +22,11 @@
 - [x] Add organizer plan preview and execution report UI.
 - [x] Add organizer happy-path, safety, hash, schema, and injected rollback tests.
 - [ ] Manually smoke-test disposable-file organization in the installed app.
-- [ ] Open a draft PR with the Sasamen contribution trailer.
+- [x] Open organizer PR with Sasamen attribution; merged as PR #1.
+- [x] Implement Enter/Shift+Enter handling, response/code copy controls, scroll following, and cancellation isolation; merged as [PR #10](https://github.com/mrme77/DigDug/pull/10).
+- [x] Pass 35 Core tests and 8 native chat interaction tests on 2026-10-25.
+- [x] Build and install the merged release at `/Applications/DigDug.app` with explicit approval; verify its signature and executable hash.
+- [ ] Independently verify post-install launch, live chat streaming, copy feedback, and scroll behavior.
+- [ ] Make standard packaging work with this host's SDK/plugin and sandboxed icon-generation limitations.
+- [ ] Preserve tool activities and organization reports per turn instead of replacing them on the next request.
+- [ ] Invalidate read-only tool deduplication after mutations so subsequent reads can refresh file information.
